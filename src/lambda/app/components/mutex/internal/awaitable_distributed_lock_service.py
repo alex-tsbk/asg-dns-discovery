@@ -1,16 +1,13 @@
 from time import sleep
 
 from app.components.mutex.distributed_lock_interface import DistributedLockInterface
-from app.utils.di import NamedDependency
 from app.utils.logging import get_logger
 
 
 class AwaitableDistributedLockService(DistributedLockInterface):
     """Decorator implementation of service for acquiring and releasing shared state resource locks."""
 
-    def __init__(
-        self, distributed_lock_service: NamedDependency[DistributedLockInterface, "original"]  # noqa: F821
-    ) -> None:
+    def __init__(self, distributed_lock_service: DistributedLockInterface) -> None:
         self.logger = get_logger()
         self.distributed_lock_service = distributed_lock_service
 

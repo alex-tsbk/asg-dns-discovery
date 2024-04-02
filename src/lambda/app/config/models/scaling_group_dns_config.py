@@ -28,8 +28,6 @@ class ScalingGroupConfiguration(DataclassBase):
 
     # Name of the Scaling Group
     scaling_group_name: str
-    # Valid states for the Scaling Group
-    scaling_group_valid_states: list[str] = field(default_factory=list)
     # Describes how to proceed with changes for the situations when Scaling Group
     # has multiple DNS configurations
     multiple_config_proceed_mode: ScalingGroupProceedMode = field(default=ScalingGroupProceedMode.ALL_OPERATIONAL)
@@ -78,7 +76,6 @@ class ScalingGroupConfiguration(DataclassBase):
     def from_dict(item: dict):
         kwargs = {
             "scaling_group_name": item.get("scaling_group_name"),
-            "scaling_group_valid_states": item.get("scaling_group_valid_states", ["InService"]),
             "dns_config": DnsRecordConfig.from_dict(item.get("dns_config", {})),
         }
         # Optional fields

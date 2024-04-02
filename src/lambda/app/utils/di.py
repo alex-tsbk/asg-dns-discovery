@@ -1,32 +1,54 @@
 from __future__ import annotations
 
 from inspect import signature
-from typing import Annotated, Any, Type, TypeVar
+from typing import Annotated, Any, Hashable, Type
 
-T = TypeVar("T")
-# Use this annotation to inject named dependency registered in the container.
-# Example:
-# class Foo:
-#     def __init__(self):
-#         pass
-#
-# class Bar:
-#     def __init__(self, foo: NamedDependency[Foo, "foo"]):
-#         self.foo = foo
-#
-# container = DIContainer()
-# container.register(Foo, Foo, lifetime="scoped", name="foo")
-# container.register(Bar, Bar, lifetime="transient")
-# bar = container.resolve(Bar)
-# assert isinstance(bar.foo, Foo)
-NamedDependency = Annotated
+# Type alias for Annotated type to try and hide internal implementation
+Injectable = Annotated
+
+
+class NamedInjectable:
+    """Metadata class instructing DI container to resolve a named dependency from DI container,
+    rather than the default one (unnamed). Must be used together with Injectable annotation.
+
+    Example:
+        ```python
+        class FooInterface(ABC):
+            pass
+
+        class Foo(FooInterface):
+            def __init__(self):
+                pass
+
+        class FooNamed(FooInterface):
+            def __init__(self):
+                pass
+
+        class BarInterface(ABC):
+            pass
+
+        class Bar(BarInterface):
+            def __init__(self, foo: Injectable[FooInterface, NamedInjectable("foo-named")]):
+                self.foo = foo
+
+        container = DIContainer()
+        container.register(FooInterface, Foo, lifetime="scoped")
+        container.register(FooInterface, FooNamed, lifetime="scoped", name="foo-named")
+        container.register(BarInterface, Bar, lifetime="transient")
+        bar = container.resolve(BarInterface)
+        assert isinstance(bar.foo, FooNamed)
+        ```
+    """
+
+    def __init__(self, name: str) -> None:
+        self.name = name
 
 
 class DIContainer:
     """Simple DI container. Supports transient and scoped lifetimes.
 
     Usage example:
-        ```
+        ```python
         class Foo:
             def __init__(self):
                 pass
@@ -36,8 +58,8 @@ class DIContainer:
                 self.foo = foo
 
         container = DIContainer()
-        container.register(Foo, Foo, lifetime="scoped")  # will create a single instance of Foo and reuse it
-        container.register(Bar, Bar, lifetime="transient")  # will create a new instance of Bar every time it's resolved
+        container.register(Foo, Foo, lifetime="scoped")  # creates single instance of Foo and reuse it
+        container.register(Bar, Bar, lifetime="transient")  # creates a new instance of Bar every time it's requested
         foo1 = container.resolve(Foo)
         foo2 = container.resolve(Foo)
         # foo1 and foo2 are the same instance
@@ -49,10 +71,42 @@ class DIContainer:
 
     def __init__(self) -> None:
         self._services = {}
+        # Tracks services that cannot be overridden later
+        self._non_overridable_services = {}
         self._scoped_instances = {}
+        self._decorated_services: dict[Hashable, list[Type]] = {}
 
-    def register(self, interface: Type, implementation: Type, name: str = None, lifetime: str = "transient"):
+    def register(
+        self,
+        interface: Type,
+        implementation: Type,
+        name: str = None,
+        lifetime: str = "transient",
+        overridable: bool = True,
+    ):
+        """Registers a an interface with an implementation in the container.
+
+        Args:
+            interface (Type): Type of the interface to register.
+            implementation (Type): Type of the implementation to register. Will be constructed when resolved.
+            name (str, optional): Name of the implementation, if need to support multiple. Defaults to None.
+            lifetime (str, optional): Lifetime of the implementation. Can be "transient" or "scoped". Defaults to "transient".
+                Transient - new instance will be created every time it's resolved.
+                Scoped - single instance will be created and reused every time it's resolved for the lifetime of the container.
+            overridable (bool, optional): When set to True, allows overriding existing implementation. Defaults to True.
+
+        Remarks:
+            Type checking is not enforced for the implementation. It's up to the caller to ensure the implementation is correct subclass of the interface.
+            This is so to allow dynamic implementation registration at runtime.
+        """
         key = (interface, name)
+        # Ensure we're not overriding non-overridable services
+        if key in self._non_overridable_services:
+            raise ValueError(f"Service {key} is marked as non-overridable.")
+        # Check if service is marked as non-overridable
+        if not overridable:
+            self._non_overridable_services[key] = True
+        # Register service
         self._services[key] = (implementation, lifetime)
 
     def register_instance(self, instance: Any, name: str = None, allow_override: bool = False):
@@ -70,6 +124,37 @@ class DIContainer:
         if key in self._services and not allow_override:
             raise ValueError(f"Service {key} is already registered. Please set allow_override to True to override.")
         self._services[key] = (instance, "instance")
+
+    def decorate(self, interface: Type, implementation: Type, name: str = None):
+        """Decorates an existing service with a new implementation.
+
+        Remarks:
+            The new implementation must be a subclass of the interface.
+            The service being decorated must be registered first.
+            The decorated service will be resolved instead of the original one.
+            The decorated service will have the same lifetime as the original one.
+            The decorated service will receive the original service as a dependency, in the order decorators are declared.
+        Args:
+            interface (Type): Type of the interface to decorate.
+            implementation (Type): Type of the new implementation.
+            name (str, optional): If named instance is required, provide name. Defaults to None.
+        """
+        key = (interface, name)
+        if key not in self._services:
+            raise ValueError(f"Service {interface.__name__} not registered.")
+        if not issubclass(implementation, interface):
+            raise ValueError(f"Implementation {implementation.__name__} must be a subclass of {interface.__name__}.")
+        if not hasattr(implementation, "__init__"):
+            raise ValueError(f"Implementation {implementation.__name__} must have an __init__ method.")
+        if not signature(implementation.__init__).parameters:
+            raise ValueError(f"Implementation {implementation.__name__} must have at least one parameter in __init__.")
+        if list(signature(implementation.__init__).parameters) == ["self", "args", "kwargs"]:
+            raise ValueError(
+                f"Implementation {implementation.__name__} must accept underlying implementation as explicit argument."
+            )
+        if key not in self._decorated_services:
+            self._decorated_services[key] = []
+        self._decorated_services[key].append(implementation)
 
     def resolve(self, interface: Type, name: str = None) -> Any:
         """Resolves an instance of the given interface from the container.
@@ -91,16 +176,29 @@ class DIContainer:
 
         if lifetime == "instance":
             return implementation
-        elif lifetime == "scoped":
+
+        if lifetime == "scoped":
             if key in self._scoped_instances:
                 return self._scoped_instances[key]
             instance = self._create_instance(implementation)
+            instance = self._build_decorated(interface, name, instance)
             self._scoped_instances[key] = instance
             return instance
-        elif lifetime == "transient":
-            return self._create_instance(implementation)
-        else:
-            raise ValueError(f"Unsupported lifetime {lifetime}.")
+
+        if lifetime == "transient":
+            instance = self._create_instance(implementation)
+            instance = self._build_decorated(interface, name, instance)
+            return instance
+
+        raise ValueError(f"Unsupported lifetime {lifetime}.")
+
+    def _build_decorated(self, interface: Type, name: str, instance: Any) -> Any:
+        key = (interface, name)
+        if key not in self._decorated_services:
+            return instance
+        for decorator in self._decorated_services[key]:
+            instance = decorator(instance)
+        return instance
 
     def _create_instance(self, cls: Type) -> Any:
         """Creates an instance of the given class by resolving its dependencies.
@@ -114,15 +212,26 @@ class DIContainer:
         constructor = signature(cls.__init__)
         kwargs = {}
         for name, param in constructor.parameters.items():
-            if name == "self":
+            # If name is one of the reserved names, skip
+            if name in ["self", "args", "kwargs"]:
                 continue
             param_type = param.annotation
+            # If param type is not class - skip
+            if not hasattr(param_type, "__name__"):
+                continue
 
-            # Check if param_type is NamedDependency
-            if param_type.__name__ == NamedDependency.__name__:
-                dependency_type = param_type.__origin__
-                dependency_name = param_type.__metadata__[0]
-                kwargs[name] = self._build(dependency_type, dependency_name)
-            else:
-                kwargs[name] = self._build(param_type)
+            # Check if param_type is Injectable
+            if param_type.__name__ == Injectable.__name__:
+                # In __metadata__ check if we have NamedInjectable instance
+                named_injectable: NamedInjectable | None = next(
+                    filter(lambda x: type(x) is NamedInjectable, param_type.__metadata__), None
+                )
+                actual_type = param_type.__origin__
+                if named_injectable is not None:
+                    kwargs[name] = self._build(actual_type, named_injectable.name)
+                    continue
+                # Ensure we update param_type to the actual type
+                param_type = actual_type
+            # By default resolve dependency without name
+            kwargs[name] = self._build(param_type)
         return cls(**kwargs)

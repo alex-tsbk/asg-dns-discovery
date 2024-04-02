@@ -22,12 +22,12 @@ class AwsEc2AutoScalingService(metaclass=Singleton):
         self.logger = get_logger()
         self.autoscaling_client: AutoScalingClient = boto3.client("autoscaling", config=boto_config.CONFIG)
 
-    def list_running_ec2_instances(
+    def list_ec2_instances(
         self,
         autoscaling_group_names: list[str],
+        scaling_group_valid_states: list[str] = None,
         tag_filters: Sequence[FilterTypeDef] = None,
-        lifecycle_states: list[str] = ["InService"],
-    ) -> dict[str, list[str]]:
+    ) -> dict[str, list[dict]]:
         """Lists the running EC2 instances in the Auto-Scaling Groups.
 
         For more information please visit:
@@ -35,12 +35,31 @@ class AwsEc2AutoScalingService(metaclass=Singleton):
 
         Args:
             autoscaling_group_names [list[str]]: The names of the Auto Scaling groups.
+            scaling_group_valid_states [list[str]]: A list of lifecycle states to filter the results.
+                Example: for instance launching valid states could be:
+                    ['Pending', 'Pending:Wait', 'Pending:Proceed', 'InService', ]
             tag_filters [list[dict]]: A list of tag filters to apply to the query.
-            lifecycle_states [list[str]]: A list of lifecycle states to filter the results. ['InService'] is the default.
-                Example: ['InService', 'Pending', 'Terminating', 'Terminated', 'Detaching', 'Detached']
 
         Returns:
-            dict[str, list[str]]: A dictionary with the ASG name as the key and a list of EC2 instance IDs as the value.
+            dict[str, list[dict]]: A dictionary with the ASG name as the key and a list of EC2 instances containing metadata values.
+
+                Example: {
+                    "ASG-1": [
+                        {
+                            "instance_id": "i-1234567890abcdef0",
+                            "lifecycle_state": "InService",
+                            "launch_time": "2021-10-01T12:00:00Z"
+                        }
+                    ],
+                    "ASG-2": [
+                        {
+                            "instance_id": "i-1234567890abcdef1",
+                            "lifecycle_state": "InService",
+                            "launch_time": "2021-10-01T12:00:00Z"
+                        }
+                    ],
+                    ...
+                }
 
         Raises:
             CloudProviderException: When call fails to underlying boto3 function
@@ -49,10 +68,11 @@ class AwsEc2AutoScalingService(metaclass=Singleton):
         if tag_filters:
             kwargs["Filters"] = list(tag_filters)
 
-        asg_ec2_instances: dict[str, list[str]] = {}
+        asg_ec2_instances: dict[str, list[dict]] = {}
 
         # Get paginator and iterate through the results
         try:
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/autoscaling/client/describe_auto_scaling_groups.html
             paginator = self.autoscaling_client.get_paginator("describe_auto_scaling_groups")
             iterable = paginator.paginate(**kwargs)
             for page in iterable:
@@ -60,11 +80,25 @@ class AwsEc2AutoScalingService(metaclass=Singleton):
                 if not page.get("AutoScalingGroups", None):
                     break
                 for asg in page["AutoScalingGroups"]:
-                    asg_ec2_instances[asg["AutoScalingGroupName"]] = [
-                        instance["InstanceId"]
-                        for instance in asg["Instances"]
-                        if instance["LifecycleState"] in lifecycle_states
-                    ]
+                    asg_name = asg["AutoScalingGroupName"]
+                    asg_ec2_instances[asg_name] = []
+                    # Collect instances
+                    for instance in asg["Instances"]:
+                        if scaling_group_valid_states and instance["LifecycleState"] not in scaling_group_valid_states:
+                            continue
+                        asg_ec2_instances[asg_name].append(
+                            dict(
+                                instance_id=instance["InstanceId"],
+                                # 'Pending'|'Pending:Wait'|'Pending:Proceed'|'Quarantined'|'InService'|
+                                # 'Terminating'|'Terminating:Wait'|'Terminating:Proceed'|'Terminated'|
+                                # 'Detaching'|'Detached'|'EnteringStandby'|'Standby'|
+                                # 'Warmed:Pending'|'Warmed:Pending:Wait'|'Warmed:Pending:Proceed'|
+                                # 'Warmed:Terminating'|'Warmed:Terminating:Wait'|'Warmed:Terminating:Proceed'|
+                                # 'Warmed:Terminated'|'Warmed:Stopped'|'Warmed:Running'|'Warmed:Hibernated'
+                                lifecycle_state=instance["LifecycleState"],
+                                launch_time=instance["LaunchTime"],
+                            )
+                        )
         except ClientError as e:
             raise CloudProviderException(e, f"Error listing ASG running EC2 instances: {str(e)}")
 

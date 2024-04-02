@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleEventModel, LifecycleTransition
-from app.components.metadata.internal.instance_metadata_base_service import InstanceMetadataBaseService
+from app.components.metadata.instance_metadata_resolver_interface import InstanceMetadataResolverInterface
 from app.components.metadata.models.metadata_result_model import MetadataResultModel
 from app.config.env_configuration_service import EnvironmentConfigurationService
 from app.config.models.scaling_group_dns_config import ScalingGroupConfiguration
@@ -14,24 +14,18 @@ if TYPE_CHECKING:
     from mypy_boto3_ec2.service_resource import Instance
 
 
-class AwsEc2MetadataService(InstanceMetadataBaseService):
-    """Service for resolving EC2 metadata values"""
+class AwsAsgMetadataResolverService(InstanceMetadataResolverInterface):
+    """Service for resolving metadata values from AWS Auto Scaling Group instances."""
 
-    def __init__(
-        self,
-        aws_ec2_service: AwsEc2Service,
-        aws_asg_service: AwsEc2AutoScalingService,
-        configuration_service: EnvironmentConfigurationService,
-    ) -> None:
+    def __init__(self, aws_ec2_service: AwsEc2Service, aws_asg_service: AwsEc2AutoScalingService) -> None:
         self.aws_ec2_service = aws_ec2_service
         self.aws_asg_service = aws_asg_service
-        self.configuration_service = configuration_service
 
-    def handle_ip_source(
+    def resolve_ip_value(
         self,
-        sg_config_item: ScalingGroupConfiguration,
-        lifecycle_event: LifecycleEventModel,
+        source: str,  # in context of ASG, this is the name of the ASG
         ip_type: Literal["public", "private"],
+        ip_version: Literal["ipv4", "ipv6"],
     ) -> list[MetadataResultModel]:
         """Handle IP source.
 
@@ -43,7 +37,8 @@ class AwsEc2MetadataService(InstanceMetadataBaseService):
         Returns:
             list[MetadataResultModel]: The list containing information about values resolved.
         """
-        ec2_instances: list[Instance] = self._get_ec2_instances(sg_config_item, lifecycle_event)
+        ec2_instances: list[dict] = self.aws_asg_service.list_ec2_instances(autoscaling_group_names=[source])
+
         results: list[MetadataResultModel] = []
         for ec2_instance in ec2_instances:
             ec2_instance.load()
@@ -94,7 +89,6 @@ class AwsEc2MetadataService(InstanceMetadataBaseService):
     def _get_ec2_instances(
         self,
         sg_config_item: ScalingGroupConfiguration,
-        lifecycle_event: LifecycleEventModel,
     ) -> list[Instance]:
         """Resolve EC2 instances.
 
@@ -106,25 +100,6 @@ class AwsEc2MetadataService(InstanceMetadataBaseService):
             list[Instance]: The list of EC2 instances ids, sorted by launch time in ascending order.
         """
 
-        supported_transitions = [
-            LifecycleTransition.LAUNCHING,
-            LifecycleTransition.DRAINING,
-            LifecycleTransition.RECONCILING,
-        ]
-
-        # Don't resolve instances for unsupported transitions
-        if lifecycle_event.transition not in supported_transitions:
-            return []
-
-        if lifecycle_event.transition in [
-            LifecycleTransition.LAUNCHING,
-            LifecycleTransition.DRAINING,
-        ]:
-            instance = self.aws_ec2_service.get_instance(lifecycle_event.instance_id)
-            return [instance]
-
-        if lifecycle_event.transition == LifecycleTransition.RECONCILING:
-            asg_name = sg_config_item.scaling_group_name
-            valid_states = sg_config_item.scaling_group_valid_states
-            instances = self.aws_asg_service.list_running_ec2_instances([asg_name], lifecycle_states=valid_states)
-            return instances[asg_name]
+        asg_name = sg_config_item.scaling_group_name
+        instances = self.aws_asg_service.list_running_ec2_instances([asg_name])
+        return instances[asg_name]

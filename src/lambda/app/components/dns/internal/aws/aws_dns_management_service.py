@@ -5,8 +5,8 @@ from app.components.dns.models.dns_change_response_model import DnsChangeRespons
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleEventModel, LifecycleTransition
 from app.components.metadata.instance_metadata_interface import InstanceMetadataInterface
 from app.components.metadata.models.metadata_result_model import MetadataResultModel
-from app.config.models.scaling_group_dns_config import ScalingGroupConfiguration
 from app.config.models.dns_record_config import DnsRecordMappingMode
+from app.config.models.scaling_group_dns_config import ScalingGroupConfiguration
 from app.infrastructure.aws.route53_service import Route53Service
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json

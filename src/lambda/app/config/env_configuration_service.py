@@ -1,11 +1,10 @@
-import os
 from typing import Callable
 
-# from app.aws.dynamo import DynamoDBRepository
 from app.config.models.db_config import DbConfig
 from app.config.models.metrics_config import MetricsConfig
 from app.config.models.readiness_config import ReadinessConfig
 from app.config.models.reconciliation_config import ReconciliationConfig
+from app.utils import environment
 from app.utils.dataclass import DataclassBase
 
 
@@ -21,11 +20,11 @@ class EnvironmentConfigurationService:
         """Returns readiness settings. These are used to determine if an instance is ready to serve traffic."""
 
         def resolver() -> ReadinessConfig:
-            enabled = os.environ.get("ec2_readiness_enabled", "true").lower() == "true"
-            interval = int(os.environ.get("ec2_readiness_interval_seconds", 5))
-            timeout = int(os.environ.get("ec2_readiness_timeout_seconds", 300))
-            tag_key = os.environ.get("ec2_readiness_tag_key", "app:code-deploy:status")
-            tag_value = os.environ.get("ec2_readiness_tag_value", "success")
+            enabled = environment.get("ec2_readiness_enabled", "true").lower() == "true"
+            interval = environment.get("ec2_readiness_interval_seconds", 5)
+            timeout = environment.get("ec2_readiness_timeout_seconds", 300)
+            tag_key = environment.get("ec2_readiness_tag_key", "app:code-deploy:status")
+            tag_value = environment.get("ec2_readiness_tag_value", "success")
             return ReadinessConfig(
                 enabled=enabled,
                 interval=interval,
@@ -41,9 +40,9 @@ class EnvironmentConfigurationService:
         """Returns DynamoDB settings. These are used to determine if an instance is ready to serve traffic."""
 
         def resolver() -> DbConfig:
-            provider = os.environ.get("db_provider", "dynamodb")
-            table_name = os.environ.get("db_table_name", "")
-            config_item_key_id = os.environ.get("db_config_item_key_id", "")
+            provider = environment.get("db_provider", "dynamodb")
+            table_name = environment.get("db_table_name", "")
+            config_item_key_id = environment.get("db_config_item_key_id", "")
             return DbConfig(
                 provider=provider,
                 table_name=table_name,
@@ -57,9 +56,10 @@ class EnvironmentConfigurationService:
         """Returns reconciliation settings. These are used to determine if an instance is ready to serve traffic."""
 
         def resolver() -> ReconciliationConfig:
-            what_if = os.environ.get("reconciliation_what_if", "false").lower() == "true"
-            max_concurrency = int(os.environ.get("reconciliation_max_concurrency", 1))
-            return ReconciliationConfig(what_if, max_concurrency)
+            what_if = environment.get("reconciliation_what_if", "false").lower() == "true"
+            max_concurrency = environment.get("reconciliation_max_concurrency", 1)
+            scaling_group_valid_states = environment.get("reconciliation_scaling_group_valid_states", "").split(",")
+            return ReconciliationConfig(what_if, max_concurrency, scaling_group_valid_states)
 
         return self._cached("reconciliation_config", resolver)
 
@@ -68,11 +68,11 @@ class EnvironmentConfigurationService:
         """Returns metrics settings. These are used to determine if an instance is ready to serve traffic."""
 
         def resolver() -> MetricsConfig:
-            metrics_enabled = str(os.environ.get("monitoring_metrics_enabled", False)).lower() == "true"
-            metrics_provider = os.environ.get("monitoring_metrics_provider", "cloudwatch")
-            metrics_namespace = os.environ.get("monitoring_metrics_namespace", "")
-            alarms_enabled = str(os.environ.get("monitoring_alarms_enabled", "false")).lower() == "true"
-            alarms_notification_destination = os.environ.get("monitoring_alarms_notification_destination", "")
+            metrics_enabled = environment.get("monitoring_metrics_enabled", "false").lower() == "true"
+            metrics_provider = environment.get("monitoring_metrics_provider", "cloudwatch")
+            metrics_namespace = environment.get("monitoring_metrics_namespace", "")
+            alarms_enabled = environment.get("monitoring_alarms_enabled", "false").lower() == "true"
+            alarms_notification_destination = environment.get("monitoring_alarms_notification_destination", "")
             return MetricsConfig(
                 metrics_enabled=metrics_enabled,
                 metrics_provider=metrics_provider,

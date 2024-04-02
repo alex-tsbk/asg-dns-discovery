@@ -21,8 +21,9 @@ locals {
     db_table_name         = aws_dynamodb_table.dns_discovery_state_lock_table.name
     db_config_item_key_id = local.dynamo_db_config_item_key_id
     # Reconciliation
-    reconciliation_what_if         = var.reconciliation.what_if
-    reconciliation_max_concurrency = var.reconciliation.max_concurrency
+    reconciliation_what_if                    = var.reconciliation.what_if
+    reconciliation_max_concurrency            = var.reconciliation.max_concurrency
+    reconciliation_scaling_group_valid_states = join(",", var.reconciliation.scaling_group_valid_states)
     # Custom metrics and alarms
     monitoring_metrics_enabled                 = var.monitoring.metrics_enabled
     monitoring_metrics_provider                = var.monitoring.metrics_provider

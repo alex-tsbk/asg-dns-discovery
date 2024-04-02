@@ -23,7 +23,7 @@ class HealthCheckProtocol(Enum):
 
 @dataclass
 class HealthCheckConfig:
-    """Model representing the health check configuration for an EC2 instance.
+    """Model representing the health check configuration for an instance.
 
     Raises:
         ValueError: When the health check port is invalid.
@@ -40,6 +40,11 @@ class HealthCheckConfig:
     protocol: HealthCheckProtocol = field(default=HealthCheckProtocol.HTTP)
     # The interval in seconds to check the health of the instance
     timeout_seconds: int = field(default=5)
+
+    @property
+    def uid(self):
+        """Unique identifier for the health check result"""
+        return f"{self.enabled}/{self.endpoint_source}/{self.path}/{self.port}/{self.protocol}/{self.timeout_seconds}"
 
     def __post_init__(self):
         if self.port < 1 or self.port > 65535:

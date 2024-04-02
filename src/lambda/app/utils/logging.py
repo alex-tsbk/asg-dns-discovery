@@ -37,7 +37,7 @@ def _build_application_logger() -> logging.Logger:
     logger.setLevel(numeric_level)
     console_handler = logging.StreamHandler()
     console_handler.setLevel(numeric_level)
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(thread)d - %(levelname)s - %(message)s")
+    formatter = logging.Formatter("%(asctime)s:%(name)s:%(thread)d:%(levelname)s:%(message)s")
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     return logger

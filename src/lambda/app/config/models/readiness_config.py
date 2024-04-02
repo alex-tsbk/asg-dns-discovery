@@ -17,8 +17,9 @@ class ReadinessConfig(DataclassBase):
     tag_value: str = field(default="ready")
 
     @property
-    def id(self):
-        return f"{self.enabled}{self.interval_seconds}{self.timeout_seconds}{self.tag_key}{self.tag_value}"
+    def uid(self):
+        """Unique identifier for the readiness configuration"""
+        return f"{self.enabled}/{self.interval_seconds}/{self.timeout_seconds}/{self.tag_key}/{self.tag_value}"
 
     @staticmethod
     def from_dict(item: dict):

@@ -2,12 +2,8 @@ import socket
 import urllib.request
 
 from app.components.healthcheck.health_check_interface import HealthCheckInterface
-from app.components.healthcheck.models.health_check_result_model import (
-    HealthCheckResultModel,
-    EndpointHealthCheckResultModel,
-)
-from app.config.models.health_check_config import HealthCheckProtocol
-from app.config.models.scaling_group_dns_config import ScalingGroupConfiguration
+from app.components.healthcheck.models.health_check_result_model import HealthCheckResultModel
+from app.config.models.health_check_config import HealthCheckConfig, HealthCheckProtocol
 from app.utils.logging import get_logger
 
 
@@ -17,28 +13,28 @@ class HealthCheckService(HealthCheckInterface):
     def __init__(self):
         self.logger = get_logger()
 
-    def check(self, destination: str, sg_dns_config: ScalingGroupConfiguration) -> HealthCheckResultModel:
+    def check(self, destination: str, health_check_config: HealthCheckConfig) -> HealthCheckResultModel:
         """
-        Performs a health check on a specified destination in accordance to given Scaling Group configuration.
+        Performs a health check on a destination in accordance with the given health check configuration.
 
         Args:
             destination (str): The address of the resource to run health check against. Can be IP, DNS name, etc.
-            sg_dns_config (ScalingGroupConfiguration): The Scaling Group DNS configuration item.
+            health_check_config (HealthCheckConfig): The health check configuration to use.
 
 
         Returns:
             HealthCheckResultModel: The model that represents the result of the health check.
         """
-        protocol: HealthCheckProtocol = sg_dns_config.health_check_config.protocol
-        port: int = sg_dns_config.health_check_config.port
-        path: str = sg_dns_config.health_check_config.path
-        timeout_seconds: int = sg_dns_config.health_check_config.timeout_seconds
+        protocol: HealthCheckProtocol = health_check_config.protocol
+        port: int = health_check_config.port
+        path: str = health_check_config.path
+        timeout_seconds: int = health_check_config.timeout_seconds
 
         match protocol:
             case HealthCheckProtocol.TCP:
                 return self._tcp_check(destination, port, timeout_seconds)
             case HealthCheckProtocol.HTTP | HealthCheckProtocol.HTTPS:
-                scheme = sg_dns_config.health_check_config.protocol.value.lower()
+                scheme = health_check_config.protocol.value.lower()
                 return self._http_check(destination, scheme, port, path, timeout_seconds)
             case _:
                 raise ValueError("Unsupported protocol. Only 'TCP' and 'HTTP(S)' are supported.")
@@ -66,26 +62,18 @@ class HealthCheckService(HealthCheckInterface):
         try:
             result = sock.connect_ex((ip, port))
             return HealthCheckResultModel(
-                [
-                    EndpointHealthCheckResultModel(
-                        healthy=result == 0,
-                        protocol="TCP",
-                        endpoint=f"{ip}:{port}",
-                    )
-                ]
+                healthy=result == 0,
+                protocol="TCP",
+                endpoint=f"{ip}:{port}",
             )
         except socket.error as e:
             msg = f"Socket error: {e}"
             self.logger.error(msg)
             return HealthCheckResultModel(
-                [
-                    EndpointHealthCheckResultModel(
-                        healthy=False,
-                        protocol="TCP",
-                        endpoint=f"{ip}:{port}",
-                        message=msg,
-                    )
-                ]
+                healthy=False,
+                protocol="TCP",
+                endpoint=f"{ip}:{port}",
+                message=msg,
             )
         finally:
             sock.close()
@@ -116,16 +104,12 @@ class HealthCheckService(HealthCheckInterface):
         try:
             response = urllib.request.urlopen(url, timeout=timeout_seconds)
             return HealthCheckResultModel(
-                [
-                    EndpointHealthCheckResultModel(
-                        healthy=response.getcode() == 200,
-                        endpoint=ip,
-                        protocol=scheme,
-                        status=response.getcode(),
-                        time_taken_s=response.getheader("X-Response-Time", 0),
-                    )
-                ]
+                healthy=response.getcode() == 200,
+                endpoint=ip,
+                protocol=scheme,
+                status=response.getcode(),
+                time_taken_s=response.getheader("X-Response-Time", 0),
             )
         except Exception as e:
             self.logger.error(f"HTTP check failed: {e}")
-            return HealthCheckResultModel.UNHEALTHY()
+            return HealthCheckResultModel(False, ip, scheme, message=str(e))

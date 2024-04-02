@@ -1,5 +1,5 @@
 import pytest
-from app.utils.di import DIContainer, NamedDependency
+from app.utils.di import DIContainer, Injectable, NamedInjectable
 
 
 class Foo:
@@ -14,24 +14,24 @@ class Bar:
 
 @pytest.fixture
 def di_container():
-    container = DIContainer()
-    yield container
-    container._scoped_instances.clear()
+    di_container = DIContainer()
+    yield di_container
+    di_container._scoped_instances.clear()
 
 
-def test_resolve_transient_instance(di_container):
+def test_resolve_transient_instance(di_container: DIContainer):
     di_container.register(Foo, Foo, lifetime="transient")
     foo = di_container.resolve(Foo)
     assert isinstance(foo, Foo)
 
 
-def test_resolve_transient_instance_with_name(di_container):
+def test_resolve_transient_instance_with_name(di_container: DIContainer):
     di_container.register(Foo, Foo, lifetime="transient", name="foo1")
     foo = di_container.resolve(Foo, name="foo1")
     assert isinstance(foo, Foo)
 
 
-def test_resolve_transient_instance_with_names(di_container):
+def test_resolve_transient_instance_with_names(di_container: DIContainer):
     di_container.register(Foo, Foo, lifetime="transient", name="foo1")
     di_container.register(Foo, Foo, lifetime="transient", name="foo2")
     foo1 = di_container.resolve(Foo, name="foo1")
@@ -39,14 +39,14 @@ def test_resolve_transient_instance_with_names(di_container):
     assert foo1 is not foo2
 
 
-def test_resolve_scoped_instance(di_container):
+def test_resolve_scoped_instance(di_container: DIContainer):
     di_container.register(Foo, Foo, lifetime="scoped")
     foo1 = di_container.resolve(Foo)
     foo2 = di_container.resolve(Foo)
     assert foo1 is foo2
 
 
-def test_resolve_with_dependency(di_container):
+def test_resolve_with_dependency(di_container: DIContainer):
     di_container.register(Foo, Foo, lifetime="scoped")
     di_container.register(Bar, Bar, lifetime="transient")
     bar = di_container.resolve(Bar)
@@ -54,26 +54,26 @@ def test_resolve_with_dependency(di_container):
     assert isinstance(bar.foo, Foo)
 
 
-def test_resolve_with_dependency_raises_error_when_service_not_registered(di_container):
+def test_resolve_with_dependency_raises_error_when_service_not_registered(di_container: DIContainer):
     with pytest.raises(ValueError):
         di_container.resolve(Bar)
 
 
-def test_register_instance(di_container):
+def test_register_instance(di_container: DIContainer):
     foo_instance = Foo()
     di_container.register_instance(foo_instance)
     resolved_instance = di_container.resolve(Foo)
     assert resolved_instance is foo_instance
 
 
-def test_register_instance_with_name(di_container):
+def test_register_instance_with_name(di_container: DIContainer):
     foo_instance = Foo()
     di_container.register_instance(foo_instance, name="foo_instance")
     resolved_instance = di_container.resolve(Foo, name="foo_instance")
     assert resolved_instance is foo_instance
 
 
-def test_register_instance_with_same_name_raises_error_when_allow_override_is_false(di_container):
+def test_register_instance_with_same_name_raises_error_when_allow_override_is_false(di_container: DIContainer):
     foo_instance1 = Foo()
     foo_instance2 = Foo()
     di_container.register_instance(foo_instance1, name="foo_instance")
@@ -81,7 +81,7 @@ def test_register_instance_with_same_name_raises_error_when_allow_override_is_fa
         di_container.register_instance(foo_instance2, name="foo_instance", allow_override=False)
 
 
-def test_register_instance_with_same_name_allows_override_when_allow_override_is_true(di_container):
+def test_register_instance_with_same_name_allows_override_when_allow_override_is_true(di_container: DIContainer):
     foo_instance1 = Foo()
     foo_instance2 = Foo()
     di_container.register_instance(foo_instance1, name="foo_instance")
@@ -90,19 +90,107 @@ def test_register_instance_with_same_name_allows_override_when_allow_override_is
     assert resolved_instance is foo_instance2
 
 
+def test_register_raises_error_when_attempting_to_register_non_overridable_service_twice(di_container: DIContainer):
+    di_container.register(Foo, Foo, lifetime="scoped", overridable=False)
+    with pytest.raises(ValueError):
+        di_container.register(Foo, Foo, lifetime="scoped", overridable=False)
+
+
 class Baz:
     pass
 
 
-class Qux:
-    def __init__(self, foo: NamedDependency[Foo, "foo"]):  # noqa: F821
+class QuxI:
+    def __init__(self, foo: Injectable[Foo, "Foo"]):
         self.foo = foo
 
 
-def test_resolve_annotated_type_should_inject_correct_named_registered_instance(di_container):
-    container = DIContainer()
-    container.register(Foo, Baz, lifetime="scoped")
-    container.register(Foo, Foo, lifetime="scoped", name="foo")
-    container.register(Qux, Qux, lifetime="transient")
-    qux = container.resolve(Qux)
+class QuxNI:
+    def __init__(self, foo: Injectable[Foo, NamedInjectable("foo")]):  # noqa: F821
+        self.foo: Foo = foo
+
+
+def test_resolve_explicit_injectable(di_container: DIContainer):
+    di_container.register(Foo, Baz, lifetime="scoped")
+    di_container.register(QuxI, QuxI, lifetime="transient")
+    qux = di_container.resolve(QuxI)
+    assert isinstance(qux.foo, Baz)
+
+
+def test_resolve_annotated_type_should_inject_correct_named_registered_instance(di_container: DIContainer):
+    di_container.register(Foo, Baz, lifetime="scoped")
+    di_container.register(Foo, Foo, lifetime="scoped", name="foo")
+    di_container.register(QuxNI, QuxNI, lifetime="transient")
+    qux = di_container.resolve(QuxNI)
     assert isinstance(qux.foo, Foo)
+
+
+class CorgeInterface:
+    def name(self):
+        return "CorgeInterface"
+
+
+class Corge(CorgeInterface):
+
+    def name(self):
+        return "Corge"
+
+
+class Grault(CorgeInterface):
+
+    def __init__(self, underlying: CorgeInterface):
+        self.underlying = underlying
+
+    def name(self):
+        return f"{self.underlying.name()}->Grault"
+
+
+def test_resolve_interface_type_should_inject_correct_instance_when_decorated(di_container: DIContainer):
+    di_container.register(CorgeInterface, Corge, lifetime="scoped")
+    di_container.decorate(CorgeInterface, Grault)
+    corge = di_container.resolve(CorgeInterface)
+    assert corge.name() == "Corge->Grault"
+
+
+def test_resolve_interface_type_should_raise_when_trying_to_decorated_named_registration_without_name(
+    di_container: DIContainer,
+):
+    di_container = DIContainer()
+    di_container.register(CorgeInterface, Corge, name="grault", lifetime="scoped")
+    with pytest.raises(ValueError):
+        di_container.decorate(CorgeInterface, Grault)
+
+
+def test_resolve_interface_type_should_inject_correct_instance_when_decorated_with_name(di_container: DIContainer):
+    di_container.register(CorgeInterface, Corge, name="corge", lifetime="scoped")
+    di_container.decorate(CorgeInterface, Grault, name="corge")
+    corge = di_container.resolve(CorgeInterface, name="corge")
+    assert corge.name() == "Corge->Grault"
+
+
+class GarplyInterface:
+    pass
+
+
+class Garply(GarplyInterface):
+    pass
+
+
+def test_resolve_interface_type_should_raise_when_trying_to_decorate_registration_with_different_type(
+    di_container: DIContainer,
+):
+    di_container.register(CorgeInterface, Corge, lifetime="scoped")
+    with pytest.raises(ValueError):
+        di_container.decorate(CorgeInterface, Garply)
+
+
+class Waldo(GarplyInterface):
+    pass
+
+
+def test_resolve_should_raise_when_trying_to_decorate_registration_and_not_accepting_implementation(
+    di_container: DIContainer,
+):
+    di_container.register(GarplyInterface, Garply, lifetime="scoped")
+    with pytest.raises(ValueError):
+        di_container.decorate(GarplyInterface, Waldo)

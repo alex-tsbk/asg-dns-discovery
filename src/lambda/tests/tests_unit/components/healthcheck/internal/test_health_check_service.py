@@ -7,8 +7,6 @@ from app.components.healthcheck.internal.health_check_service import (
     HealthCheckService,
 )
 
-from app.components.healthcheck.models.health_check_result_model import EndpointHealthCheckResultModel
-
 
 @pytest.fixture
 def health_check_service():
@@ -79,7 +77,7 @@ def test_check_tcp_protocol(health_check_service: HealthCheckService, monkeypatc
     sg_dns_config.health_check_config.timeout_seconds = timeout_seconds
 
     mock_tcp_check = MagicMock()
-    mock_tcp_check.return_value = HealthCheckResultModel([EndpointHealthCheckResultModel(True)])
+    mock_tcp_check.return_value = HealthCheckResultModel(True)
     monkeypatch.setattr(health_check_service, "_tcp_check", mock_tcp_check)
 
     result = health_check_service.check(destination, sg_dns_config)
@@ -100,7 +98,7 @@ def test_check_http_protocol(health_check_service: HealthCheckService, monkeypat
     sg_dns_config.health_check_config.timeout_seconds = timeout_seconds
 
     mock_http_check = MagicMock()
-    mock_http_check.return_value = HealthCheckResultModel([EndpointHealthCheckResultModel(True)])
+    mock_http_check.return_value = HealthCheckResultModel(True)
     monkeypatch.setattr(health_check_service, "_http_check", mock_http_check)
 
     result = health_check_service.check(destination, sg_dns_config)

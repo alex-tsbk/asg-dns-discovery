@@ -2,12 +2,14 @@ from abc import ABCMeta, abstractmethod
 
 from app.config.models.readiness_config import ReadinessConfig
 
+from .models.readiness_result_model import ReadinessResultModel
+
 
 class InstanceReadinessInterface(metaclass=ABCMeta):
     """Interface for instance readiness service"""
 
     @abstractmethod
-    def is_ready(instance_id: str, readiness_config: ReadinessConfig, wait: bool) -> bool:
+    def is_ready(instance_id: str, readiness_config: ReadinessConfig) -> ReadinessResultModel:
         """Checks if the instance is ready.
 
         Args:
@@ -17,6 +19,6 @@ class InstanceReadinessInterface(metaclass=ABCMeta):
                 to become ready in accordance with the readiness_config provided
 
         Returns:
-            bool: True if service is ready, False otherwise
+            ReadinessResultModel: Model representing the readiness result
         """
         pass

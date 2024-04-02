@@ -26,10 +26,6 @@ variable "records" {
     # Name of the Scaling Group that is the target of the DNS Discovery
     scaling_group_name = string
 
-    # List of valid states for the scaling group. Default is ['InService']. Cloud provider specific.
-    # * AWS: https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-lifecycle.html
-    scaling_group_valid_states = optional(list(string), ["InService"])
-
     # Determines how exactly to proceed with making DNS changes in the situations
     # when Scaling Group has multiple configurations, but not all of them are 'operational'.
     # Supported values:
@@ -67,13 +63,14 @@ variable "records" {
 
       # Value to use as the source for the DNS record. 'ip:private' is default.
       # Supported values:
-      # * 'ip:public' - will use public IP of the instance
-      # * 'ip:private' - will use private IP of the instance
+      # * 'ip-v4:public|private' - will use public/private IP v4 of the instance.
+      # * 'ip-v6:public|private' - will use public/private IP v6 of the instance.
+      # * 'dns:public|private' - will use public/private DNS name of the instance
       # * 'tag:<tag_name>' - where <tag_name> is the name of the tag to use as the source for the DNS record value.
       # IMPORTANT:
       # * If you're using private IPs, resolver function must be on the same network as Instance (EC2).
       #   For AWS this means lambda being deployed to the same VPC as the ASG(s) it's runnign check against.
-      value_source = optional(string, "ip:private")
+      value_source = optional(string, "ip-v4:private")
 
       # Describes how to handle DNS record values.
       #
@@ -218,6 +215,10 @@ variable "reconciliation" {
     # ###
     # RUNTIME BEHAVIOR
     # ###
+
+    # List of valid states for the scaling group to consider for reconciliation. Cloud provider specific.
+    # * AWS: https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-lifecycle.html
+    scaling_group_valid_states = optional(list(string), ["Pending", "Pending:Wait", "Pending:Proceed", "InService"])
 
     # "What If" mode. When `true`, the reconciliation will only log what it would do, but not actually do it.
     # It is recommended that you run application in this mode first to see what would happen,

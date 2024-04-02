@@ -12,8 +12,9 @@ def register_services(di_container: DIContainer, env_config_service: Environment
     Args:
         di_container (DIContainer): DI container
     """
-    if RUNTIME_CONTEXT.is_localhost_development:
+    if RUNTIME_CONTEXT.is_local_development:
         di_container.register(MetricsInterface, DevelopmentMetricsService, lifetime="scoped")
+        return
 
     metrics_provider = env_config_service.metrics_config.metrics_provider
     if RUNTIME_CONTEXT.is_aws and metrics_provider == "cloudwatch":

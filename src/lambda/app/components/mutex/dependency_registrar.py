@@ -12,6 +12,6 @@ def register_services(di_container: DIContainer, env_config_service: Environment
     Args:
         di_container (DIContainer): DI container
     """
-    di_container.register(DistributedLockInterface, DistributedLockService, name="original", lifetime="scoped")
+    di_container.register(DistributedLockInterface, DistributedLockService, lifetime="scoped")
     # Register decorator service
-    di_container.register(DistributedLockInterface, AwaitableDistributedLockService, lifetime="scoped")
+    di_container.decorate(DistributedLockInterface, AwaitableDistributedLockService)
