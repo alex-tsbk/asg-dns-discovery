@@ -1,4 +1,5 @@
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
+from typing import Any, override
 
 from app.utils.dataclass import DataclassBase
 
@@ -21,8 +22,9 @@ class ReadinessConfig(DataclassBase):
         """Unique identifier for the readiness configuration"""
         return f"{self.enabled}/{self.interval_seconds}/{self.timeout_seconds}/{self.tag_key}/{self.tag_value}"
 
-    @staticmethod
-    def from_dict(item: dict):
+    @override
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]):
         """
         Converts dictionary to ReadinessConfig object
 
@@ -35,4 +37,4 @@ class ReadinessConfig(DataclassBase):
             "tag_value": "<tag_value>"
         }
         """
-        return ReadinessConfig(**item)
+        return ReadinessConfig(**data)

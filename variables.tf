@@ -61,16 +61,19 @@ variable "records" {
       # * cloudflare
       provider = optional(string, "route53")
 
-      # Value to use as the source for the DNS record. 'ip:private' is default.
+      # Value to use as the source for the DNS record. 'ip:v4:private' is default.
       # Supported values:
-      # * 'ip-v4:public|private' - will use public/private IP v4 of the instance.
-      # * 'ip-v6:public|private' - will use public/private IP v6 of the instance.
+      # * 'ip:v4:public|private' - will use public/private IP v4 of the instance.
+      # * 'ip:v6:public|private' - will use public/private IP v6 of the instance.
       # * 'dns:public|private' - will use public/private DNS name of the instance
-      # * 'tag:<tag_name>' - where <tag_name> is the name of the tag to use as the source for the DNS record value.
+      # * 'tag:[<case_comparison_type>]:<tag_name>' - where <tag_name> is the name of the tag to
+      #     use as the source for the DNS record value. '<comparison_type>' - Specifies whether to
+      #     perform case sensitive or insestitive tag key match. Use 'ci' for case insensitive match.
+      #     Use 'cs' or omit parameter for case sensitive match. Default is case sensitive.
       # IMPORTANT:
       # * If you're using private IPs, resolver function must be on the same network as Instance (EC2).
       #   For AWS this means lambda being deployed to the same VPC as the ASG(s) it's runnign check against.
-      value_source = optional(string, "ip-v4:private")
+      value_source = optional(string, "ip:v4:private")
 
       # Describes how to handle DNS record values.
       #

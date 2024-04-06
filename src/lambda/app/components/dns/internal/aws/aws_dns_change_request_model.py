@@ -1,19 +1,28 @@
 from __future__ import annotations
 
-from dataclasses import field
-from typing import override
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Self, override
 
-from app.components.dns.models.dns_change_request_model import DnsChangeRequestAction, DnsChangeRequestModel
+if TYPE_CHECKING:
+    from mypy_boto3_route53.type_defs import ChangeBatchTypeDef, ChangeTypeDef
+    from mypy_boto3_route53.literals import ChangeActionType
+
+from app.components.dns.models.dns_change_request_model import (
+    DnsChangeRequestAction,
+    DnsChangeRequestModel,
+    DnsRecordType,
+)
 
 
+@dataclass(kw_only=True)
 class AwsDnsChangeRequestModel(DnsChangeRequestModel):
     """Model for AWS Route53 change request."""
 
     # Private attributes
-    _change: dict = field(init=False, repr=False, default_factory=dict)
+    _change: ChangeTypeDef = field(init=False, repr=False)
 
     @override
-    def get_change(self) -> dict:
+    def get_change(self) -> ChangeBatchTypeDef:
         """Returns a fully-constructed change batch to update the IPs in the DNS record set for Route53.
 
         Args:
@@ -37,14 +46,14 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
         return {"Changes": [self._change]}
 
     @override
-    def build_change(self) -> "AwsDnsChangeRequestModel":
+    def build_change(self) -> Self:
         """Generate a change request for a record based on record type.
 
         Returns:
             AwsDnsChangeRequestModel: The change request.
         """
         match self.record_type:
-            case "A":
+            case DnsRecordType.A:
                 self._change = self._build_A_record_change()
             case _:
                 raise NotImplementedError(
@@ -52,7 +61,7 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
                 )
         return self
 
-    def _build_A_record_change(self) -> dict:
+    def _build_A_record_change(self) -> ChangeTypeDef:
         """Build an A record change.
 
         Returns:
@@ -62,14 +71,14 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
             "Action": self._get_route53_change_action_name(self.action),
             "ResourceRecordSet": {
                 "Name": self.record_name,
-                "Type": self.record_type,
+                "Type": self.record_type.value,
                 "TTL": self.record_ttl,
                 "ResourceRecords": [{"Value": value} for value in sorted(list(set(self.record_values)))],
             },
         }
 
     @staticmethod
-    def _get_route53_change_action_name(action: DnsChangeRequestAction) -> str:
+    def _get_route53_change_action_name(action: DnsChangeRequestAction) -> ChangeActionType:
         """Get Route53 change action.
 
         Args:

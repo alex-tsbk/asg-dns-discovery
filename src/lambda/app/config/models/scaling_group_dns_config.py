@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Optional, override
 
 from app.config.models.dns_record_config import DnsRecordConfig
 from app.config.models.health_check_config import HealthCheckConfig
@@ -28,15 +29,15 @@ class ScalingGroupConfiguration(DataclassBase):
 
     # Name of the Scaling Group
     scaling_group_name: str
+    # DNS configuration
+    dns_config: DnsRecordConfig
     # Describes how to proceed with changes for the situations when Scaling Group
     # has multiple DNS configurations
     multiple_config_proceed_mode: ScalingGroupProceedMode = field(default=ScalingGroupProceedMode.ALL_OPERATIONAL)
-    # DNS configuration
-    dns_config: DnsRecordConfig = field(default_factory=DnsRecordConfig)
     # Health check configuration
-    health_check_config: HealthCheckConfig | None = field(default=None)
+    health_check_config: Optional[HealthCheckConfig] = field(default=None)
     # Readiness config
-    readiness_config: ReadinessConfig | None = field(default=None)
+    readiness_config: Optional[ReadinessConfig] = field(default=None)
 
     def __post_init__(self):
         if not self.scaling_group_name:
@@ -72,29 +73,31 @@ class ScalingGroupConfiguration(DataclassBase):
         key = f"{self.scaling_group_name}-{self.dns_config.dns_zone_id}-{self.dns_config.record_name}-{self.dns_config.record_type}"
         return key
 
-    @staticmethod
-    def from_dict(item: dict):
-        kwargs = {
-            "scaling_group_name": item.get("scaling_group_name"),
-            "dns_config": DnsRecordConfig.from_dict(item.get("dns_config", {})),
+    @override
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]):
+        kwargs: dict[str, Any] = {
+            "scaling_group_name": data.get("scaling_group_name"),
+            "dns_config": DnsRecordConfig.from_dict(data.get("dns_config", {})),
         }
         # Optional fields
-        if "multiple_config_proceed_mode" in item:
+        if "multiple_config_proceed_mode" in data:
             kwargs["multiple_config_proceed_mode"] = ScalingGroupProceedMode(
-                str(item["multiple_config_proceed_mode"]).upper()
+                str(data["multiple_config_proceed_mode"]).upper()
             )
         # Only create health check config if it's present in the config
-        health_check_config = item.get("health_check_config", {})
+        health_check_config = data.get("health_check_config", {})
         if health_check_config:
             kwargs["health_check_config"] = HealthCheckConfig.from_dict(health_check_config)
         # Only create readiness config if it's present in the config
-        readiness_config = item.get("readiness_config", {})
+        readiness_config = data.get("readiness_config", {})
         if readiness_config:
             kwargs["readiness_config"] = ReadinessConfig.from_dict(readiness_config)
         # Initialize the config
         return ScalingGroupConfiguration(**kwargs)
 
 
+@dataclass
 class ScalingGroupConfigurations(DataclassBase):
     config_items: list[ScalingGroupConfiguration] = field(default_factory=list)
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from typing import Any
 
 from app.components.metrics.metrics_interface import MetricsInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
@@ -22,9 +23,10 @@ class AwsCloudwatchMetricsService(MetricsInterface):
         self.processing_date_time = datetime.datetime.now(datetime.UTC)
         self.cloudwatch_metrics_namespace = env_configuration_service.metrics_config.metrics_namespace
         # Metric data - records individual metrics for later publishing
-        self.metric_data_points = []
+        self.metric_data_points: list[dict[str, Any]] = []
         # Metric dimensions - shared across all metrics pushed
-        self.metric_dimensions = []
+        self.metric_dimensions: list[dict[str, Any]] = []
+        self.cloudwatch_service = cloudwatch_service
 
     def reset(self):
         """Resets the metrics service to a clean state"""
@@ -36,7 +38,7 @@ class AwsCloudwatchMetricsService(MetricsInterface):
         self,
         metric_name: str,
         metric_value: int,
-        description: str = None,
+        description: str = "",
         metric_unit: str = "Count",
     ):
         """Record a metric data point for later publishing
@@ -61,7 +63,7 @@ class AwsCloudwatchMetricsService(MetricsInterface):
         if description:
             self.logger.debug(f"{description}: {metric_value}")
 
-    def record_dimension(self, metric_name: str, metric_value: str, description: str = None):
+    def record_dimension(self, metric_name: str, metric_value: str, description: str = ""):
         """Record a metric dimension for later use in metric publishing
 
         Args:
@@ -87,13 +89,15 @@ class AwsCloudwatchMetricsService(MetricsInterface):
 
         try:
             # Put metric data
-            self.cloudwatch_client.put_metric_data(
-                Namespace=self.cloudwatch_metrics_namespace, MetricData=self.metric_data_points
+            self.cloudwatch_service.publish_metric_data(
+                namespace=self.cloudwatch_metrics_namespace,
+                metric_data=self.metric_data_points,  # type: ignore -- underlying boto3 type now available at runtime
             )
             self.logger.debug(f"Pushing metrics to cloudwatch: {self.metric_data_points}")
             self.logger.info(
                 f"Metric pushed successfully: {self.cloudwatch_metrics_namespace} / {len(self.metric_data_points)} data points."
             )
+            return True
         except ClientError as e:
             message = f"Error pushing metrics to cloudwatch: {str(e)}"
             self.logger.error(to_json(self.metric_data_points))

@@ -1,18 +1,12 @@
 from dataclasses import dataclass, field
 
-from app.components.healthcheck.models.health_check_result_model import HealthCheckResultModel
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleEventModel
-from app.components.readiness.models.readiness_result_model import ReadinessResultModel
-from app.config.models.health_check_config import HealthCheckConfig
-from app.config.models.readiness_config import ReadinessConfig
-from app.config.models.scaling_group_dns_config import ScalingGroupConfiguration
 from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.handlers.handler_context import HandlerContext
 from app.handlers.handler_interface import HandlerInterface
-from app.utils.dataclass import DataclassBase
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ScalingGroupLifecycleContext(HandlerContext):
     """Represents the context for handling Scaling Group lifecycle events."""
 
@@ -22,6 +16,8 @@ class ScalingGroupLifecycleContext(HandlerContext):
     instance_context_handler: HandlerInterface
     # Scaling group may have multiple DNS configurations declared,
     # which themselves may have different readiness and health check configurations.
+    # Thus, same instance may be passing readiness and health checks for one DNS configuration,
+    # but not for another. This is why we need to track readiness and health checks for each DNS configuration.
     instances_contexts: list[InstanceLifecycleContext] = field(default_factory=list)
 
     def register_instance_context(self, instance_context: InstanceLifecycleContext):
@@ -35,4 +31,6 @@ class ScalingGroupLifecycleContext(HandlerContext):
         """
         self.instances_contexts.append(instance_context)
         self.instance_context_handler.handle(instance_context)
-        return self
+
+    def __post_init__(self):
+        return super().__post_init__()

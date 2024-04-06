@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import threading
 from threading import Lock
-from typing import ClassVar, Annotated
+from typing import Annotated, ClassVar
 
 from app.components.healthcheck.health_check_interface import HealthCheckInterface
 from app.components.healthcheck.models.health_check_result_model import HealthCheckResultModel
+from app.components.metadata.instance_metadata_interface import InstanceMetadataInterface
 from app.config.models.health_check_config import HealthCheckConfig
 from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
-from app.components.metadata.instance_metadata_interface import InstanceMetadataInterface
 from app.handlers.handler_base import HandlerBase
 from app.utils.logging import get_logger
 

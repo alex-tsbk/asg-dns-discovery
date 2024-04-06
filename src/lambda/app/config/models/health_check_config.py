@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, override
+
+from app.utils.dataclass import DataclassBase
 
 
 class HealthCheckProtocol(Enum):
@@ -22,7 +25,7 @@ class HealthCheckProtocol(Enum):
 
 
 @dataclass
-class HealthCheckConfig:
+class HealthCheckConfig(DataclassBase):
     """Model representing the health check configuration for an instance.
 
     Raises:
@@ -59,8 +62,9 @@ class HealthCheckConfig:
         if self.enabled and self.protocol in [HealthCheckProtocol.HTTP, HealthCheckProtocol.HTTPS] and not self.path:
             raise ValueError("Health check path is required when HTTP(S) health check is enabled")
 
-    @staticmethod
-    def from_dict(data: dict):
+    @override
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]):
         """
         Create a HealthCheckConfig from a dictionary.
         Example:

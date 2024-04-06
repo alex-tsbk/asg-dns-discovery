@@ -1,32 +1,31 @@
 from abc import ABCMeta, abstractmethod
-from typing import Literal
 
-from app.components.metadata.models.metadata_result_model import MetadataResultModel
+from app.domain.models.instance_model import InstanceModel
 
 
 class InstanceDiscoveryInterface(metaclass=ABCMeta):
     """Interface for discovering instances."""
 
     @abstractmethod
-    def get_instance(instance_id: str) -> MetadataResultModel:
-        """Get the instance by its ID.
+    def describe_instances(self, *instances_ids: str) -> list[InstanceModel]:
+        """Describe the instances with the given IDs.
 
         Args:
-            instance_id (str): The ID of the instance.
+            *instances_ids (str): The IDs of the instances to describe.
 
         Returns:
-            MetadataResultModel: The instance metadata.
+            list[InstanceModel]: Models describing the instances.
         """
         pass
 
     @abstractmethod
-    def get_scaling_group_instances(scaling_group_name: str) -> list[MetadataResultModel]:
+    def describe_scaling_groups(self, *scaling_groups_names: str) -> list[InstanceModel]:
         """Get the instances in the scaling group.
 
         Args:
-            scaling_group_name (str): The name of the scaling group.
+            *scaling_groups_names (str): The names of the scaling groups to describe.
 
         Returns:
-            list[MetadataResultModel]: The instances metadata.
+            list[InstanceModel]: Models describing the instances.
         """
         pass

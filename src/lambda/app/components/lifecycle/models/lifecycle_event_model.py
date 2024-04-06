@@ -1,6 +1,6 @@
-from abc import abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 from app.utils.dataclass import DataclassBase
 
@@ -39,7 +39,7 @@ class LifecycleAction(Enum):
     ABANDON = "ABANDON"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class LifecycleEventModel(DataclassBase):
     """
     Model representing the information about lifecycle event
@@ -59,3 +59,6 @@ class LifecycleEventModel(DataclassBase):
                 raise ValueError(f"Scaling group name is required for {transition_name} transition")
             if not self.instance_id:
                 raise ValueError(f"Instance id is required for {transition_name} transition")
+
+    def get_lifecycle_action_args(self) -> dict[str, Any]:
+        raise NotImplementedError("Method can only be called on platform-specific subclass")

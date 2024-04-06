@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import boto3
-from app.components.dns.internal.aws.aws_dns_change_request_model import AwsDnsChangeRequestModel
 from app.infrastructure.aws import boto_config
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
@@ -13,6 +12,7 @@ from botocore.exceptions import ClientError
 
 if TYPE_CHECKING:
     from mypy_boto3_route53.client import Route53Client
+    from mypy_boto3_route53.type_defs import ChangeBatchTypeDef, ResourceRecordSetTypeDef
 
 
 class Route53Service(metaclass=Singleton):
@@ -20,7 +20,7 @@ class Route53Service(metaclass=Singleton):
     Service class for managing DNS records using AWS Route53.
     """
 
-    route53_client: Route53Client = boto3.client("route53", config=boto_config.CONFIG)
+    route53_client: Route53Client = boto3.client("route53", config=boto_config.CONFIG)  # type: ignore
     cached_hosted_zones: dict[str, str] = {}
 
     def __init__(self):
@@ -47,7 +47,7 @@ class Route53Service(metaclass=Singleton):
             message = f"Error getting hosted zone name: {str(e)}"
             raise CloudProviderException(e, message)
 
-    def read_record(self, hosted_zone_id: str, record_name: str, record_type: str) -> dict:
+    def read_record(self, hosted_zone_id: str, record_name: str, record_type: str) -> ResourceRecordSetTypeDef | None:
         """Get information about a specific record.
 
         For more information please visit:
@@ -57,7 +57,7 @@ class Route53Service(metaclass=Singleton):
             response = self.route53_client.list_resource_record_sets(
                 HostedZoneId=hosted_zone_id,
                 StartRecordName=record_name,
-                StartRecordType=record_type,
+                StartRecordType=record_type,  # type: ignore
                 MaxItems="1",
             )
             self.logger.debug(f"read_record response: {to_json(response)}")
@@ -69,7 +69,7 @@ class Route53Service(metaclass=Singleton):
             message = f"Error reading record: {str(e)}"
             raise CloudProviderException(e, message)
 
-    def change_resource_record_sets(self, hosted_zone_id: str, change: AwsDnsChangeRequestModel) -> None:
+    def change_resource_record_sets(self, hosted_zone_id: str, change: ChangeBatchTypeDef) -> bool:
         """Create, change, or delete a resource record set.
 
         For more information please visit:
@@ -96,14 +96,13 @@ class Route53Service(metaclass=Singleton):
             ClientError: When call fails to underlying boto3 function
         """
         try:
-            response = self.route53_client.change_resource_record_sets(
-                HostedZoneId=hosted_zone_id, ChangeBatch=change.get_change()
-            )
+            response = self.route53_client.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=change)
             self.logger.debug(f"change_resource_record_sets response: {to_json(response)}")
             # Wait for the change to propagate
             waiter = self.route53_client.get_waiter("resource_record_sets_changed")
             waiter.wait(Id=response["ChangeInfo"]["Id"])
             self.logger.debug(f"Resource record sets changed: {response['ChangeInfo']['Id']}")
+            return True
         except ClientError as e:
             message = f"Error changing resource record sets: {str(e)}"
             raise CloudProviderException(e, message)

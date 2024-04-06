@@ -1,14 +1,18 @@
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass
+from typing import override
+
+from app.utils.dataclass import DataclassBase
 
 
-@dataclass(frozen=True)
-class DbConfig:
+@dataclass
+class DbConfig(DataclassBase):
     provider: str
     table_name: str
     config_item_key_id: str
 
-    @staticmethod
-    def from_dict(item: dict):
+    @override
+    @classmethod
+    def from_dict(cls, data: dict[str, str]) -> "DbConfig":
         """
         Converts dictionary to DbConfig object
 
@@ -19,4 +23,4 @@ class DbConfig:
             "config_item_key_id": "<dynamo_table_key_id>"
         }
         """
-        return DbConfig(**item)
+        return DbConfig(**data)

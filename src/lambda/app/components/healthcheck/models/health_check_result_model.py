@@ -32,12 +32,12 @@ class HealthCheckResultModel(DataclassBase):
         return f"{self.protocol}:{self.endpoint}:{self.healthy} (instance_id:{self.instance_id};status:{self.status};msg:{self.message};time_s:{self.time_taken_s})"
 
     def __hash__(self) -> int:
-        return hash(self.uid)
+        return hash(str(self))
 
     def __bool__(self) -> bool:
         return self.healthy
 
-    def __eq__(self, other: "HealthCheckResultModel") -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, HealthCheckResultModel):
             return False
         return self.healthy == other.healthy

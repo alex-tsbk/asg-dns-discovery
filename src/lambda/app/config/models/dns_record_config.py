@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, override
 
 from app.utils.dataclass import DataclassBase
 
@@ -78,19 +79,20 @@ class DnsRecordConfig(DataclassBase):
                 f"Invalid record type: {self.record_type} - for mode {self.mode.value}: only {RECORDS_SUPPORTING_MULTIVALUE} are supported"
             )
 
-    @staticmethod
-    def from_dict(item: dict) -> "DnsRecordConfig":
+    @override
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "DnsRecordConfig":
         """Create a DNS record configuration from a dictionary"""
         return DnsRecordConfig(
-            provider=DnsRecordProvider(str(item.get("provider", DnsRecordProvider.ROUTE53.value)).upper()),
-            value_source=str(item.get("value_source", "ip:private")).lower(),
-            mode=DnsRecordMappingMode(str(item.get("mode", DnsRecordMappingMode.MULTIVALUE.value)).upper()),
-            dns_zone_id=item.get("dns_zone_id", ""),
-            record_name=item.get("record_name", ""),
-            record_ttl=item.get("record_ttl", 60),
-            record_type=item.get("record_type", "A"),
-            record_priority=item.get("record_priority", 0),
-            record_weight=item.get("record_weight", 0),
-            managed_dns_record=str(item.get("managed_dns_record", False)).lower() == "true",
-            dns_mock_value=item.get("dns_mock_value", "1.0.0.217"),
+            provider=DnsRecordProvider(str(data.get("provider", DnsRecordProvider.ROUTE53.value)).upper()),
+            value_source=str(data.get("value_source", "ip:private")).lower(),
+            mode=DnsRecordMappingMode(str(data.get("mode", DnsRecordMappingMode.MULTIVALUE.value)).upper()),
+            dns_zone_id=data.get("dns_zone_id", ""),
+            record_name=data.get("record_name", ""),
+            record_ttl=data.get("record_ttl", 60),
+            record_type=data.get("record_type", "A"),
+            record_priority=data.get("record_priority", 0),
+            record_weight=data.get("record_weight", 0),
+            managed_dns_record=str(data.get("managed_dns_record", False)).lower() == "true",
+            dns_mock_value=data.get("dns_mock_value", "1.0.0.217"),
         )

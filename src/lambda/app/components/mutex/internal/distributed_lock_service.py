@@ -14,7 +14,7 @@ class DistributedLockService(DistributedLockInterface):
         self.logger = get_logger()
         self.repository = repository
 
-    def check_lock(self, resource_id: str) -> bool:
+    def check_lock(self, lock_key: str) -> bool:
         """Checks if a lock exists on a resource.
 
         Args:
@@ -26,12 +26,13 @@ class DistributedLockService(DistributedLockInterface):
         Raises:
             CloudProviderException: When underlying cloud provider operation fails.
         """
+        resource_id = lock_key  # Explicit naming for context claritys
         self.logger.debug(f"Checking lock for resource: {resource_id}")
         item = self.repository.get(resource_id)
         self.logger.debug(f"check_lock item: {to_json(item)}")
         return bool(item)
 
-    def acquire_lock(self, resource_id: str) -> bool:
+    def acquire_lock(self, lock_key: str) -> bool:
         """Acquires a lock on a resource.
 
         Args:
@@ -43,6 +44,7 @@ class DistributedLockService(DistributedLockInterface):
         Raises:
             CloudProviderException: When underlying cloud provider operation fails.
         """
+        resource_id = lock_key  # Explicit naming for context clarity
         self.logger.debug(f"Acquiring lock for resource: {resource_id}")
         try:
             item = ({"resource_id": resource_id, "timestamp": int(time.time())},)
@@ -54,7 +56,7 @@ class DistributedLockService(DistributedLockInterface):
         except Exception as e:
             raise BusinessException(f"Error acquiring lock for resource: {resource_id}", e)
 
-    def release_lock(self, resource_id: str) -> None:
+    def release_lock(self, lock_key: str) -> None:
         """Releases a lock on a resource.
 
         Args:
@@ -63,6 +65,7 @@ class DistributedLockService(DistributedLockInterface):
         Raises:
             CloudProviderException: When underlying cloud provider operation fails.
         """
+        resource_id = lock_key  # Explicit naming for context clarity
         self.logger.debug(f"Releasing lock for resource: {resource_id}")
         try:
             self.repository.delete(resource_id)

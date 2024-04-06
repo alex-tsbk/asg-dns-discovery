@@ -44,6 +44,11 @@ class NamedInjectable:
         self.name = name
 
 
+type _DI_SERVICE_KEY = tuple[Annotated[Type[Any], "Interface Type"], Annotated[str, "Lifetime Scope"]]
+type _DI_SERVICE_IMPL = tuple[Annotated[Type[Any], "Implementation Type"], Annotated[str, "Implementation Name"]]
+type _DI_INSTANCE = tuple[Annotated[Any, "Implementation Instance"], Annotated[str, "Instance Name"]]
+
+
 class DIContainer:
     """Simple DI container. Supports transient and scoped lifetimes.
 
@@ -70,17 +75,20 @@ class DIContainer:
     """
 
     def __init__(self) -> None:
-        self._services = {}
+        self._services: dict[_DI_SERVICE_KEY, _DI_SERVICE_IMPL] = {}
+        self._instances: dict[_DI_SERVICE_KEY, _DI_INSTANCE] = {}
         # Tracks services that cannot be overridden later
-        self._non_overridable_services = {}
-        self._scoped_instances = {}
-        self._decorated_services: dict[Hashable, list[Type]] = {}
+        self._non_overridable_services: dict[_DI_SERVICE_KEY, bool] = {}
+        self._scoped_instances: dict[_DI_SERVICE_KEY, Any] = {}
+        self._decorated_services: dict[Hashable, list[Type[Any]]] = {}
+        # Register self so it can be injected
+        self.register_instance(self, allow_override=False)
 
     def register(
         self,
-        interface: Type,
-        implementation: Type,
-        name: str = None,
+        interface: Type[Any],
+        implementation: Type[Any],
+        name: str = "",
         lifetime: str = "transient",
         overridable: bool = True,
     ):
@@ -109,7 +117,7 @@ class DIContainer:
         # Register service
         self._services[key] = (implementation, lifetime)
 
-    def register_instance(self, instance: Any, name: str = None, allow_override: bool = False):
+    def register_instance(self, instance: Any, name: str = "", allow_override: bool = False):
         """Registers an instance in the container.
 
         Args:
@@ -120,12 +128,14 @@ class DIContainer:
         Raises:
             ValueError: If instance with the same name is already registered and allow_override is False.
         """
-        key = (type(instance), name)
-        if key in self._services and not allow_override:
+        key: _DI_SERVICE_KEY = (type(instance), name)
+        if key in self._instances and not allow_override:
             raise ValueError(f"Service {key} is already registered. Please set allow_override to True to override.")
-        self._services[key] = (instance, "instance")
+        self._instances[key] = (instance, "instance")
+        # Register in services container as well, to prevent resolving by type
+        self._services[key] = (type(instance), "instance")
 
-    def decorate(self, interface: Type, implementation: Type, name: str = None):
+    def decorate(self, interface: Type[Any], implementation: Type[Any], name: str = ""):
         """Decorates an existing service with a new implementation.
 
         Remarks:
@@ -156,7 +166,7 @@ class DIContainer:
             self._decorated_services[key] = []
         self._decorated_services[key].append(implementation)
 
-    def resolve(self, interface: Type, name: str = None) -> Any:
+    def resolve[T](self, interface: Type[T], name: str = "") -> T:
         """Resolves an instance of the given interface from the container.
 
         Args:
@@ -168,14 +178,14 @@ class DIContainer:
         """
         return self._build(interface, name)
 
-    def _build(self, interface: Type, name: str = None) -> Any:
+    def _build[T](self, interface: Type[T], name: str = "") -> T:
         key = (interface, name)
         if key not in self._services:
             raise ValueError(f"Service {interface.__name__} not registered.")
         implementation, lifetime = self._services[key]
 
         if lifetime == "instance":
-            return implementation
+            return self._instances[key][0]
 
         if lifetime == "scoped":
             if key in self._scoped_instances:
@@ -192,7 +202,7 @@ class DIContainer:
 
         raise ValueError(f"Unsupported lifetime {lifetime}.")
 
-    def _build_decorated(self, interface: Type, name: str, instance: Any) -> Any:
+    def _build_decorated(self, interface: Type[Any], name: str, instance: Any) -> Any:
         key = (interface, name)
         if key not in self._decorated_services:
             return instance
@@ -200,7 +210,7 @@ class DIContainer:
             instance = decorator(instance)
         return instance
 
-    def _create_instance(self, cls: Type) -> Any:
+    def _create_instance(self, cls: Type[Any]) -> Any:
         """Creates an instance of the given class by resolving its dependencies.
 
         Args:

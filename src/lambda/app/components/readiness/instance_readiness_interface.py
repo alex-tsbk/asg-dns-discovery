@@ -9,7 +9,7 @@ class InstanceReadinessInterface(metaclass=ABCMeta):
     """Interface for instance readiness service"""
 
     @abstractmethod
-    def is_ready(instance_id: str, readiness_config: ReadinessConfig) -> ReadinessResultModel:
+    def is_ready(self, instance_id: str, readiness_config: ReadinessConfig) -> ReadinessResultModel:
         """Checks if the instance is ready.
 
         Args:

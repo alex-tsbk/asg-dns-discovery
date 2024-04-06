@@ -1,18 +1,19 @@
-from dataclasses import field
+from dataclasses import dataclass, field
 
 from app.utils.dataclass import DataclassBase
 
 
+@dataclass
 class DnsChangeResponseModel(DataclassBase):
     """Represents the response of a DNS change request"""
 
-    successful: bool
+    success: bool
     message: str = field(default="")
 
     @classmethod
-    def SUCCESS(cls):
-        return cls(successful=True)
+    def Success(cls):
+        return cls(success=True)
 
     @classmethod
-    def FAILURE(cls):
-        return cls(successful=False)
+    def Failure(cls):
+        return cls(success=False)

@@ -1,4 +1,5 @@
 import datetime
+from typing import Any
 
 from app.components.metrics.metrics_interface import MetricsInterface
 from app.utils.logging import get_logger
@@ -12,9 +13,9 @@ class DevelopmentMetricsService(MetricsInterface):
         # Specify processing date time
         self.processing_date_time = datetime.datetime.now(datetime.UTC)
         # Metric data - records individual metrics for later publishing
-        self.metric_data_points = []
+        self.metric_data_points: list[dict[str, Any]] = []
         # Metric dimensions - shared across all metrics pushed
-        self.metric_dimensions = []
+        self.metric_dimensions: list[dict[str, Any]] = []
 
     def reset(self):
         """Resets the metrics service to a clean state"""
@@ -27,7 +28,7 @@ class DevelopmentMetricsService(MetricsInterface):
         self,
         metric_name: str,
         metric_value: int,
-        description: str = None,
+        description: str = "",
         metric_unit: str = "Count",
     ):
         """Record a metric data point for later publishing
@@ -52,7 +53,7 @@ class DevelopmentMetricsService(MetricsInterface):
         if description:
             self._logger.debug(f"{description}: {metric_value}")
 
-    def record_dimension(self, metric_name: str, metric_value: str, description: str = None):
+    def record_dimension(self, metric_name: str, metric_value: str, description: str = ""):
         """Record a metric dimension for later use in metric publishing
 
         Args:

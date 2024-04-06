@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Annotated, Any, Sequence
 
 import boto3
 from app.infrastructure.aws import boto_config
@@ -12,7 +12,7 @@ from botocore.exceptions import ClientError
 
 if TYPE_CHECKING:
     from mypy_boto3_autoscaling.client import AutoScalingClient
-    from mypy_boto3_autoscaling.type_defs import FilterTypeDef
+    from mypy_boto3_autoscaling.type_defs import FilterTypeDef, InstanceTypeDef
 
 
 class AwsEc2AutoScalingService(metaclass=Singleton):
@@ -20,55 +20,57 @@ class AwsEc2AutoScalingService(metaclass=Singleton):
 
     def __init__(self):
         self.logger = get_logger()
-        self.autoscaling_client: AutoScalingClient = boto3.client("autoscaling", config=boto_config.CONFIG)
+        self.autoscaling_client: AutoScalingClient = boto3.client("autoscaling", config=boto_config.CONFIG)  # type: ignore
 
-    def list_ec2_instances(
+    def describe_instances(
         self,
-        autoscaling_group_names: list[str],
-        scaling_group_valid_states: list[str] = None,
-        tag_filters: Sequence[FilterTypeDef] = None,
-    ) -> dict[str, list[dict]]:
+        *,
+        auto_scaling_group_names: list[str],
+        tag_filters: Sequence[FilterTypeDef] | None = None,
+    ) -> dict[Annotated[str, "ASG Name"], Sequence[InstanceTypeDef]]:
         """Lists the running EC2 instances in the Auto-Scaling Groups.
 
         For more information please visit:
         https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/autoscaling.html#AutoScaling.Client.describe_auto_scaling_groups
 
         Args:
-            autoscaling_group_names [list[str]]: The names of the Auto Scaling groups.
-            scaling_group_valid_states [list[str]]: A list of lifecycle states to filter the results.
-                Example: for instance launching valid states could be:
-                    ['Pending', 'Pending:Wait', 'Pending:Proceed', 'InService', ]
+            auto_scaling_group_names [list[str]]: The names of the Auto Scaling groups.
             tag_filters [list[dict]]: A list of tag filters to apply to the query.
 
         Returns:
-            dict[str, list[dict]]: A dictionary with the ASG name as the key and a list of EC2 instances containing metadata values.
-
-                Example: {
+            dict[Annotated[str, "ASG Name"], Sequence[InstanceTypeDef]]: A dictionary with the ASG name as the key and a list of EC2 instances containing metadata values.
+                Example:
+                ```python
+                {
                     "ASG-1": [
                         {
-                            "instance_id": "i-1234567890abcdef0",
-                            "lifecycle_state": "InService",
-                            "launch_time": "2021-10-01T12:00:00Z"
-                        }
+                            "InstanceId": str,
+                            "AvailabilityZone": str,
+                            "LifecycleState": LifecycleStateType,
+                            "HealthStatus": str,
+                            "ProtectedFromScaleIn": bool,
+                            "InstanceType": NotRequired[str],
+                            "LaunchConfigurationName": NotRequired[str],
+                            "LaunchTemplate": NotRequired[LaunchTemplateSpecificationTypeDef],
+                            "WeightedCapacity": NotRequired[str],
+                        },
+                        ...
                     ],
                     "ASG-2": [
-                        {
-                            "instance_id": "i-1234567890abcdef1",
-                            "lifecycle_state": "InService",
-                            "launch_time": "2021-10-01T12:00:00Z"
-                        }
+                        ...
                     ],
                     ...
                 }
+                ```
 
         Raises:
             CloudProviderException: When call fails to underlying boto3 function
         """
-        kwargs = {"AutoScalingGroupNames": autoscaling_group_names}
+        kwargs: dict[str, Any] = {"AutoScalingGroupNames": auto_scaling_group_names}
         if tag_filters:
             kwargs["Filters"] = list(tag_filters)
 
-        asg_ec2_instances: dict[str, list[dict]] = {}
+        asg_ec2_instances: dict[Annotated[str, "ASG Name"], Sequence[InstanceTypeDef]] = {}
 
         # Get paginator and iterate through the results
         try:
@@ -80,25 +82,7 @@ class AwsEc2AutoScalingService(metaclass=Singleton):
                 if not page.get("AutoScalingGroups", None):
                     break
                 for asg in page["AutoScalingGroups"]:
-                    asg_name = asg["AutoScalingGroupName"]
-                    asg_ec2_instances[asg_name] = []
-                    # Collect instances
-                    for instance in asg["Instances"]:
-                        if scaling_group_valid_states and instance["LifecycleState"] not in scaling_group_valid_states:
-                            continue
-                        asg_ec2_instances[asg_name].append(
-                            dict(
-                                instance_id=instance["InstanceId"],
-                                # 'Pending'|'Pending:Wait'|'Pending:Proceed'|'Quarantined'|'InService'|
-                                # 'Terminating'|'Terminating:Wait'|'Terminating:Proceed'|'Terminated'|
-                                # 'Detaching'|'Detached'|'EnteringStandby'|'Standby'|
-                                # 'Warmed:Pending'|'Warmed:Pending:Wait'|'Warmed:Pending:Proceed'|
-                                # 'Warmed:Terminating'|'Warmed:Terminating:Wait'|'Warmed:Terminating:Proceed'|
-                                # 'Warmed:Terminated'|'Warmed:Stopped'|'Warmed:Running'|'Warmed:Hibernated'
-                                lifecycle_state=instance["LifecycleState"],
-                                launch_time=instance["LaunchTime"],
-                            )
-                        )
+                    asg_ec2_instances[asg["AutoScalingGroupName"]] = asg["Instances"]
         except ClientError as e:
             raise CloudProviderException(e, f"Error listing ASG running EC2 instances: {str(e)}")
 
@@ -106,11 +90,12 @@ class AwsEc2AutoScalingService(metaclass=Singleton):
 
     def complete_lifecycle_action(
         self,
+        *,  # Enforce keyword-only arguments
         lifecycle_hook_name: str,
         autoscaling_group_name: str,
         lifecycle_action_token: str,
         lifecycle_action_result: str,
-        ec2_instance_id: str,
+        instance_id: str,
     ) -> None:
         """Completes the lifecycle action for the ASG.
 
@@ -127,7 +112,7 @@ class AwsEc2AutoScalingService(metaclass=Singleton):
 
             lifecycle_action_result [str]: The action for the group to take. This parameter can be either CONTINUE or ABANDON .
 
-            ec2_instance_id [str]: EC2 instance ID.
+            instance_id [str]: EC2 instance ID.
 
         Raises:
             CloudProviderException: When call fails to underlying boto3 function
@@ -138,7 +123,7 @@ class AwsEc2AutoScalingService(metaclass=Singleton):
                 AutoScalingGroupName=autoscaling_group_name,
                 LifecycleActionToken=lifecycle_action_token,
                 LifecycleActionResult=lifecycle_action_result,
-                InstanceId=ec2_instance_id,
+                InstanceId=instance_id,
             )
             self.logger.debug(f"complete_lifecycle_action response: {to_json(response)}")
         except ClientError as e:

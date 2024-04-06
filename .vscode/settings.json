@@ -20,6 +20,25 @@
     "titleBar.activeBackground": "#4a197b",
     "titleBar.activeForeground": "#FEFBFC"
   },
+  // https://code.visualstudio.com/docs/python/settings-reference#_code-analysis-settings
+  "python.analysis.autoFormatStrings": true,
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.inlayHints.variableTypes": true,
+  "python.analysis.inlayHints.functionReturnTypes": true,
+  "python.analysis.typeCheckingMode": "strict",
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.autoSearchPaths": false,
+  "python.analysis.exclude": [
+    "**/.venv/**/*",
+    "**/.pytest_cache/**",
+  ],
+  "python.analysis.ignore": [
+    "**/src/lambda/tests/**/*.py"
+  ],
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportUnusedFunction": "warning",
+  },
+  "python.terminal.activateEnvironment": true,
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
@@ -50,6 +69,7 @@
   ],
   "cSpell.words": [
     "boto",
+    "boto3",
     "devcontainer",
     "healthcheck",
     "venv"

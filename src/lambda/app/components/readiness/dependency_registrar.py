@@ -19,4 +19,4 @@ def register_services(di_container: DIContainer, env_config_service: Environment
         di_container.register(InstanceReadinessInterface, AwsInstanceReadinessService, lifetime="scoped")
     # Register decorator that augments the service with awaitable functionality.
     # This allows to keep only platform-specific logic in the concrete implementation.
-    di_container.decorate(InstanceReadinessInterface, AwaitableInstanceReadinessService, lifetime="scoped")
+    di_container.decorate(InstanceReadinessInterface, AwaitableInstanceReadinessService)

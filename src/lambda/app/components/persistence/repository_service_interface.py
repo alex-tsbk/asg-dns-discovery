@@ -6,7 +6,7 @@ class RepositoryInterface[T: Hashable, K](metaclass=ABCMeta):
     """Interface for repository service. Don't confuse this with Repository pattern."""
 
     @abstractmethod
-    def get(key: T) -> K:
+    def get(self, key: T) -> K:
         """Gets item from storage.
 
         Args:
@@ -18,7 +18,7 @@ class RepositoryInterface[T: Hashable, K](metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def create(key: T, item: K) -> K:
+    def create(self, key: T, item: K) -> object | None:
         """Create item in DynamoDB table.
 
         Args:
@@ -31,7 +31,7 @@ class RepositoryInterface[T: Hashable, K](metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def put(key: T, item: K) -> K:
+    def put(self, key: T, item: K) -> object | None:
         """Put item in storage.
 
         Args:
@@ -43,7 +43,7 @@ class RepositoryInterface[T: Hashable, K](metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def delete(key: T) -> bool:
+    def delete(self, key: T) -> bool:
         """Delete item from storage.
 
         Args:

@@ -1,14 +1,15 @@
 import os
 
 
-def get[T](key: str, default: T = None) -> T:
+def try_get_value[T: (str, bool, int)](key: str, default: T) -> T:
     """Return the value of an environment variable or a default value if it is not set.
 
     Returns:
         T: Value of the environment variable or the default value
     """
-    result = os.environ.get(key, default)
-    if result is not None and default is not None:
-        # cast to the type of the default value
+    # Infer the type of the default value if it provided, or fall back to str being the default type
+    # for environment variables.
+    result = os.environ.get(key, None)
+    if result is not None:
         return type(default)(result)
-    return result
+    return default

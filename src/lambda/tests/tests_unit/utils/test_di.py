@@ -96,6 +96,11 @@ def test_register_raises_error_when_attempting_to_register_non_overridable_servi
         di_container.register(Foo, Foo, lifetime="scoped", overridable=False)
 
 
+def test_resolve_should_be_able_to_resolve_itself(di_container: DIContainer):
+    container = di_container.resolve(DIContainer)
+    assert container == di_container
+
+
 class Baz:
     pass
 

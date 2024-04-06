@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Mapping
 
 if TYPE_CHECKING:
     from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource, Table
+
+    # from mypy_boto3_dynamodb.type_defs import TableAttributeValueTypeDef
 
 import boto3
 from app.components.persistence.repository_service_interface import RepositoryInterface
@@ -15,16 +17,16 @@ from app.utils.serialization import to_json
 from botocore.exceptions import ClientError
 
 
-class AwsDynamoDBRepository(RepositoryInterface[str, dict]):
+class AwsDynamoDBRepository(RepositoryInterface[str, Mapping[str, Any]]):
     """Repository for accessing items in DynamoDB table."""
 
     def __init__(self, environment_configuration_service: EnvironmentConfigurationService):
         self.logger = get_logger()
-        self.dynamodb: DynamoDBServiceResource = boto3.resource("dynamodb", config=boto_config.CONFIG)
+        self.dynamodb: DynamoDBServiceResource = boto3.resource("dynamodb", config=boto_config.CONFIG)  # type: ignore
         dynamodb_table_name = environment_configuration_service.db_config.table_name
         self.table: Table = self.dynamodb.Table(dynamodb_table_name)
 
-    def get(self, key: str) -> dict:
+    def get(self, key: str) -> Mapping[str, Any]:
         """Get item from DynamoDB table.
 
         Args:
@@ -35,13 +37,13 @@ class AwsDynamoDBRepository(RepositoryInterface[str, dict]):
         """
         try:
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/table/get_item.html
-            response: dict = self.table.get_item(Key={"resource_id": key}, ConsistentRead=True)
+            response = self.table.get_item(Key={"resource_id": key}, ConsistentRead=True)
             self.logger.debug(f"get_item response: {to_json(response)}")
             return response.get("Item", {})
         except ClientError as e:
             raise CloudProviderException(e, f"Error getting item from DynamoDB table: {str(e)}")
 
-    def create(self, key: str, item: dict) -> dict:
+    def create(self, key: str, item: Mapping[str, Any]) -> object | None:
         """Create item in DynamoDB table.
 
         Args:
@@ -57,7 +59,7 @@ class AwsDynamoDBRepository(RepositoryInterface[str, dict]):
         """
         try:
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/table/put_item.html
-            kwargs = {
+            kwargs: Mapping[str, Any] = {
                 "Item": item,
                 "ConditionExpression": "attribute_not_exists(resource_id)",
             }
@@ -65,11 +67,11 @@ class AwsDynamoDBRepository(RepositoryInterface[str, dict]):
             self.logger.debug(f"put_item response: {to_json(response)}")
             return item
         except ClientError as e:
-            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":  # type: ignore
                 return None
             raise CloudProviderException(e, f"Error putting item in DynamoDB table: {str(e)}")
 
-    def put(self, key: str, item: dict) -> dict:
+    def put(self, key: str, item: Mapping[str, Any]) -> object | None:
         """Put item in DynamoDB table.
 
         Args:
@@ -78,8 +80,7 @@ class AwsDynamoDBRepository(RepositoryInterface[str, dict]):
         """
         try:
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/table/put_item.html
-            kwargs = {"Item": item}
-            response = self.table.put_item(**kwargs)
+            response = self.table.put_item(Item=item)
             self.logger.debug(f"put_item response: {to_json(response)}")
             return item
         except ClientError as e:

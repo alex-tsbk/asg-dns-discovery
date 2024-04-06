@@ -1,8 +1,12 @@
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.config.runtime_context import RUNTIME_CONTEXT
 from app.utils.di import DIContainer
 
 from .instance_metadata_interface import InstanceMetadataInterface
+from .instance_metadata_resolver_interface import InstanceMetadataResolverInterface
+from .internal.instance_metadata_service import InstanceMetadataService
+from .internal.resolvers.dns_instance_metadata_resolver import DnsInstanceMetadataResolver
+from .internal.resolvers.ip_instance_metadata_resolver import IpInstanceMetadataResolver
+from .internal.resolvers.tag_instance_metadata_resolver import TagInstanceMetadataResolver
 
 
 def register_services(di_container: DIContainer, env_config_service: EnvironmentConfigurationService):
@@ -11,8 +15,10 @@ def register_services(di_container: DIContainer, env_config_service: Environment
     Args:
         di_container (DIContainer): DI container
     """
+    # Register resolvers
+    di_container.register(InstanceMetadataResolverInterface, DnsInstanceMetadataResolver, lifetime="scoped", name="dns")
+    di_container.register(InstanceMetadataResolverInterface, IpInstanceMetadataResolver, lifetime="scoped", name="ip")
+    di_container.register(InstanceMetadataResolverInterface, TagInstanceMetadataResolver, lifetime="scoped", name="tag")
 
-    if RUNTIME_CONTEXT.is_aws:
-        from .internal.aws.aws_ec2_metadata_service import AwsEc2MetadataService
-
-        di_container.register(InstanceMetadataInterface, AwsEc2MetadataService, lifetime="scoped")
+    # Register metadata service
+    di_container.register(InstanceMetadataInterface, InstanceMetadataService, lifetime="scoped")

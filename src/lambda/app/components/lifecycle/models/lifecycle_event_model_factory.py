@@ -1,3 +1,5 @@
+from typing import Any
+
 from app.config.runtime_context import RUNTIME_CONTEXT
 from app.utils.singleton import Singleton
 
@@ -7,7 +9,7 @@ from .lifecycle_event_model import LifecycleEventModel
 class LifecycleEventModelFactory(metaclass=Singleton):
     """Lifecycle event model factory. Creates lifecycle event models based on the runtime context."""
 
-    def create(self, event: dict) -> LifecycleEventModel:
+    def create(self, event: dict[str, Any]) -> LifecycleEventModel:
         """Creates a lifecycle event model based on the runtime context.
 
         Args:
@@ -20,3 +22,5 @@ class LifecycleEventModelFactory(metaclass=Singleton):
             from .aws.aws_lifecycle_event_model import AwsLifecycleEventModel
 
             return AwsLifecycleEventModel.from_dict(event)
+
+        raise NotImplementedError("Unsupported runtime context")

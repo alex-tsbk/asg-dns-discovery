@@ -1,6 +1,6 @@
-from dataclasses import _MISSING_TYPE, asdict, dataclass, fields, is_dataclass
+from dataclasses import MISSING, asdict, dataclass, fields, is_dataclass
 from datetime import datetime
-from typing import get_args
+from typing import Any, get_args
 
 DATETIME_TO_STR_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
@@ -10,18 +10,18 @@ class DataclassBase:
     """Base class for configuration objects"""
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: dict[str, Any]):
         """Instantiate a class from a dictionary"""
         return _instantiate_dataclass(cls, data)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[Any, Any]:
         """
         Convert the dataclass instance to a dictionary, handling nested dataclasses.
         """
         return asdict(self)
 
 
-def _instantiate_dataclass(cls, data: dict):
+def _instantiate_dataclass(cls: Any, data: dict[Any, Any]):
     """Utility function that recursively instantiates dataclasses from dictionaries
     while preserving nested dataclasses types
     """
@@ -46,7 +46,9 @@ def _instantiate_dataclass(cls, data: dict):
             and is_dataclass(get_args(field_type)[0])
         ):
             inferred_type = get_args(field_type)[0]
-            init_args[field.name] = [_instantiate_dataclass(inferred_type, item) for item in field_value]
+            init_args[field.name] = [
+                _instantiate_dataclass(inferred_type, item) for item in field_value  # type: ignore ; Type checker doesn't recognize the fact that field_value is a list
+            ]
         else:
             # Assign basic type value
             if field_value:
@@ -58,10 +60,10 @@ def _instantiate_dataclass(cls, data: dict):
                         init_args[field.name] = field_type(field_value)
                 else:
                     init_args[field.name] = field_value
-            elif not isinstance(field.default, _MISSING_TYPE):
+            elif not isinstance(field.default, type(MISSING)):
                 init_args[field.name] = field.default
-            elif not isinstance(field.default_factory, _MISSING_TYPE):
-                init_args[field.name] = field.default_factory()
+            elif not isinstance(field.default_factory, type(MISSING)):
+                init_args[field.name] = field.default_factory()  # type: ignore ; Type checker doesn't recognize default_factory and thinks it's a method
             else:
                 # Try to construct default value for the field type
                 init_args[field.name] = None

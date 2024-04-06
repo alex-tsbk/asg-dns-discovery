@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 
 from .handler_context import HandlerContext
 
 
-class HandlerInterface(ABC):
+class HandlerInterface(metaclass=ABCMeta):
     """Interface for all handlers"""
 
     @abstractmethod

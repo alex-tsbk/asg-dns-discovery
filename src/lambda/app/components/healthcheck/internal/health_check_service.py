@@ -36,7 +36,7 @@ class HealthCheckService(HealthCheckInterface):
             case HealthCheckProtocol.HTTP | HealthCheckProtocol.HTTPS:
                 scheme = health_check_config.protocol.value.lower()
                 return self._http_check(destination, scheme, port, path, timeout_seconds)
-            case _:
+            case _:  # type: ignore
                 raise ValueError("Unsupported protocol. Only 'TCP' and 'HTTP(S)' are supported.")
 
     def _tcp_check(
@@ -82,9 +82,9 @@ class HealthCheckService(HealthCheckInterface):
         self,
         ip: str,
         scheme: str,
-        port: str,
+        port: int,
         path: str,
-        timeout_seconds: str,
+        timeout_seconds: int,
     ) -> HealthCheckResultModel:
         """
         Performs an HTTP health check.
@@ -94,7 +94,7 @@ class HealthCheckService(HealthCheckInterface):
             scheme (str): The HTTP scheme to use ('http' or 'https').
             port (str): The port number to send the request to.
             path (str): The HTTP path to request.
-            timeout_seconds (str): Request timeout in seconds.
+            timeout_seconds (int): Request timeout in seconds.
 
         Returns:
             HealthCheckResultModel: Model representing the result of the health check.

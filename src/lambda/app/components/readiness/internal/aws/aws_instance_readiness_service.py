@@ -1,13 +1,10 @@
-from typing import TYPE_CHECKING
+from typing import Any, Iterable, Mapping
 
 from app.components.readiness.instance_readiness_interface import InstanceReadinessInterface
 from app.components.readiness.models.readiness_result_model import ReadinessResultModel
 from app.config.models.readiness_config import ReadinessConfig
 from app.infrastructure.aws.ec2_service import AwsEc2Service
 from app.utils.logging import get_logger
-
-if TYPE_CHECKING:
-    from mypy_boto3_ec2.service_resource import Instance
 
 
 class AwsInstanceReadinessService(InstanceReadinessInterface):
@@ -26,21 +23,23 @@ class AwsInstanceReadinessService(InstanceReadinessInterface):
         Returns:
             ReadinessResultModel: Model representing the readiness result
         """
-        if not readiness_config.enabled:
-            return True
+        readiness_model = ReadinessResultModel().with_instance_id(instance_id)
 
-        instance: Instance = self.ec2_service.get_instance(instance_id)
+        if not readiness_config.enabled:
+            return readiness_model.with_ready()
+
+        instance = self.ec2_service.get_instance(instance_id)
         if not instance:
-            return False
+            return readiness_model
 
         tag_key = readiness_config.tag_key
         tag_value = readiness_config.tag_value
-        tag_match = self._match_tag(tag_key, tag_value, instance.tags)
+        tag_match = self._match_tag(tag_key, tag_value, instance.get("Tags", []))
 
-        return tag_match is not None
+        return readiness_model.with_ready(ready=tag_match is not None)
 
     @staticmethod
-    def _match_tag(tag_key: str, tag_value: str, tags: list[dict]) -> dict | None:
+    def _match_tag(tag_key: str, tag_value: str, tags: Iterable[Mapping[str, Any]]) -> Mapping[str, Any] | None:
         """Finds tag by key and ensures value match in list of tags.
 
         Args:
@@ -59,6 +58,6 @@ class AwsInstanceReadinessService(InstanceReadinessInterface):
             dict: Tag object if found, None otherwise
         """
         return next(
-            filter(lambda t: t["Key"] == tag_key and t["Value"] == tag_value, tags),
+            filter(lambda t: t.get("Key", "") == tag_key and t.get("Value", "") == tag_value, tags),
             None,
         )

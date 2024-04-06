@@ -12,7 +12,7 @@ class DnsManagementInterface(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def generate_change_request(
-        sg_config_item: ScalingGroupConfiguration, lifecycle_event: LifecycleEventModel
+        self, sg_config_item: ScalingGroupConfiguration, lifecycle_event: LifecycleEventModel
     ) -> DnsChangeRequestModel:
         """For a given set of input parameters, generate a change set to update the values for DNS record.
 
@@ -27,7 +27,7 @@ class DnsManagementInterface(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def apply_change_request(
-        sg_config_item: ScalingGroupConfiguration, change_request: DnsChangeRequestModel
+        self, sg_config_item: ScalingGroupConfiguration, change_request: DnsChangeRequestModel
     ) -> DnsChangeResponseModel:
         """Apply the change request to the DNS record.
 

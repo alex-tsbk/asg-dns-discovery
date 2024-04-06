@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 
 import boto3
 from app.infrastructure.aws import boto_config
@@ -11,6 +11,7 @@ from botocore.exceptions import ClientError
 
 if TYPE_CHECKING:
     from mypy_boto3_cloudwatch import CloudWatchClient
+    from mypy_boto3_cloudwatch.type_defs import MetricDatumTypeDef
 
 
 class AwsCloudWatchService(metaclass=Singleton):
@@ -18,9 +19,9 @@ class AwsCloudWatchService(metaclass=Singleton):
 
     def __init__(self):
         self.logger = get_logger()
-        self.cloudwatch_client: CloudWatchClient = boto3.client("cloudwatch", config=boto_config.CONFIG)
+        self.cloudwatch_client: CloudWatchClient = boto3.client("cloudwatch", config=boto_config.CONFIG)  # type: ignore
 
-    def publish_metric_data(self, namespace: str, metric_data: list[dict]):
+    def publish_metric_data(self, namespace: str, metric_data: Sequence[MetricDatumTypeDef]):
         """Publishes metric data to CloudWatch.
 
         Args:
