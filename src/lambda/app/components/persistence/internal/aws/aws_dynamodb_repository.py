@@ -5,8 +5,6 @@ from typing import TYPE_CHECKING, Any, Mapping
 if TYPE_CHECKING:
     from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource, Table
 
-    # from mypy_boto3_dynamodb.type_defs import TableAttributeValueTypeDef
-
 import boto3
 from app.components.persistence.repository_service_interface import RepositoryInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService

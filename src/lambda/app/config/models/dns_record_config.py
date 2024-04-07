@@ -50,10 +50,6 @@ class DnsRecordConfig(DataclassBase):
     # DNS record priority and weight for SRV records
     record_priority: int = field(default=0)
     record_weight: int = field(default=0)
-    # Whether the DNS record is managed by the terraform
-    managed_dns_record: bool = field(default=False)
-    # Default mock IP address to use when DNS record is managed
-    dns_mock_value: str = field(default="1.0.0.217")
 
     def __post_init__(self):
         """Validate the DNS record configuration"""
@@ -93,6 +89,4 @@ class DnsRecordConfig(DataclassBase):
             record_type=data.get("record_type", "A"),
             record_priority=data.get("record_priority", 0),
             record_weight=data.get("record_weight", 0),
-            managed_dns_record=str(data.get("managed_dns_record", False)).lower() == "true",
-            dns_mock_value=data.get("dns_mock_value", "1.0.0.217"),
         )

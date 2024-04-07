@@ -71,7 +71,7 @@ variable "records" {
       #     perform case sensitive or insestitive tag key match. Use 'ci' for case insensitive match.
       #     Use 'cs' or omit parameter for case sensitive match. Default is case sensitive.
       # IMPORTANT:
-      # * If you're using private IPs, resolver function must be on the same network as Instance (EC2).
+      # * If you're using private IPs, resolver function must be on the same network as Instance.
       #   For AWS this means lambda being deployed to the same VPC as the ASG(s) it's runnign check against.
       value_source = optional(string, "ip:v4:private")
 
@@ -110,34 +110,6 @@ variable "records" {
 
       # Weight of the DNS record. Default is 0
       record_weight = optional(number, 0)
-
-      # If true, DNS record will be created and managed by Terraform. This has it's own pros and cons.
-      #
-      # It is strongly recommended to keep this setting set to 'false', unless you really understand the implications.
-      #
-      # Cons:
-      #   1) If you have existing Route53 record and EC2s registered in it, keep this setting set to false.
-      #      Otherwise, terraform will fail to create the record because it already exists.
-      #   2) This will vendor-lock your DNS records to Terraform. If you decide to move away from using this module,
-      #      you will have to alter terraform state and remove managed Route53 resources.
-      #   3) Because module depends on ASG resource being created first, in case when you're deploying ASG and this module together,
-      #      system will not create a DNS record entry for the very first EC2 launched,
-      #      because event for first instance launch 'would have been fired' before EC2 module provisioned SNS topic and ASG lifecycle hook.
-      #
-      # Pros:
-      #   1) You manage DNS records in Terraform, therefore - you have access to resources via Terraform state.
-      #
-      # Reconciliation (see below):
-      #   When deploying this alongside ASG, to address the limitation of the first EC2s not having a DNS record,
-      #   it is suggested to enable reconciliation. Even if you have 'managed_dns_record' set to false,
-      #   reconciliation will add EC2s on the first reconciliation run. This should satisfy vast majority of use-cases.
-      managed_dns_record = optional(bool, false)
-
-      # Default 'mock' value.
-      # Address is used when ASG is created, but no EC2s are yet running matching readiness criteria,
-      # yet we still need to have IP address in DNS record associated (record can't be created without value).
-      # Once the first lifecycle is triggered, this value will be replaced with the actual value resolved from the EC2 (IP typically).
-      dns_mock_value = optional(string, "1.0.0.217")
     })
 
     # ###

@@ -9,7 +9,7 @@ from app.utils.exceptions import BusinessException
 
 
 class RuntimeConfigurationService:
-    """Service class for resolving application configuration from storage at runtime."""
+    """Service class for resolving application configuration at runtime."""
 
     def __init__(
         self,
@@ -27,11 +27,14 @@ class RuntimeConfigurationService:
         Returns:
             ScalingGroupConfigurations: Object containing all Scaling Group DNS configurations.
         """
-        if cached_item := self._cache.get("cached_asg_config", None):
+        CONFIG_CACHE_KEY = "cached_sg_dns_configs"
+
+        if cached_item := self._cache.get(CONFIG_CACHE_KEY, None):
             return cached_item
 
         config_item_key_id: str = self.environment_config.db_config.config_item_key_id
-        # Retrieve configuration from DynamoDB
+
+        # Retrieve configuration from repository
         config_definition = self.repository.get(config_item_key_id)
         if not config_definition:
             raise BusinessException(
@@ -47,13 +50,13 @@ class RuntimeConfigurationService:
         # Decode base64
         config_items: list[dict[str, Any]] = json.loads(base64.b64decode(config_item_base64).decode("utf-8"))
         if not config_items:
-            raise BusinessException("Unable to resolve Scaling Groups DNS configuration")
+            raise BusinessException("Unable to decode and deserialize Scaling Groups DNS configuration")
 
         # Convert to ScalingGroupConfiguration objects
         sg_config_items: list[ScalingGroupConfiguration] = [
             ScalingGroupConfiguration.from_dict(item) for item in config_items
         ]
 
-        # Set instance variable
-        self._cache["cached_asg_config"] = ScalingGroupConfigurations(config_items=sg_config_items)
-        return self._cache["cached_asg_config"]
+        # Cache and return
+        self._cache[CONFIG_CACHE_KEY] = ScalingGroupConfigurations(config_items=sg_config_items)
+        return self._cache[CONFIG_CACHE_KEY]

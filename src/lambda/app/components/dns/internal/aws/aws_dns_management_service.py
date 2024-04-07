@@ -56,9 +56,9 @@ class AwsDnsManagementService(DnsManagementInterface):
         if not record:
             return IGNORED_DNS_CHANGE_REQUEST
 
-        resolved_values: list[MetadataResultModel] = self.instance_metadata_service.resolve_value(
-            sg_config_item, lifecycle_event
-        )
+        # Describe instance for the current lifecycle event, or for entire ASG
+
+        resolved_values: list[str] = self.instance_metadata_service.resolve_value(sg_config_item, lifecycle_event)
 
         if lifecycle_event.transition == LifecycleTransition.DRAINING:
             return self._handle_draining(sg_config_item, record, resolved_values)
@@ -117,7 +117,7 @@ class AwsDnsManagementService(DnsManagementInterface):
         self,
         sg_config_item: ScalingGroupConfiguration,
         record: Mapping[str, object],
-        resolved_values: list[MetadataResultModel],
+        resolved_values: list[str],
     ) -> DnsChangeRequestModel:
         """
         Handle the draining lifecycle event.
@@ -179,7 +179,7 @@ class AwsDnsManagementService(DnsManagementInterface):
         self,
         sg_config_item: ScalingGroupConfiguration,
         record: Mapping[str, object],
-        resolved_values: list[MetadataResultModel],
+        resolved_values: list[str],
     ) -> DnsChangeRequestModel:
         """Handle the launching lifecycle event.
 
@@ -196,7 +196,7 @@ class AwsDnsManagementService(DnsManagementInterface):
             return IGNORED_DNS_CHANGE_REQUEST
 
         current_record_values = self._extract_values_from_route53_record(sg_config_item, record)
-        resolved_values_destinations = [result.value for result in resolved_values]
+        resolved_values_destinations = [result for result in resolved_values]
         # If resolved_values a subset of current_record_values, ignore the change
         if set(resolved_values_destinations).issubset(set(current_record_values)):
             return IGNORED_DNS_CHANGE_REQUEST
@@ -208,14 +208,15 @@ class AwsDnsManagementService(DnsManagementInterface):
         # Create a change request
         action = DnsChangeRequestAction.CREATE if not record else DnsChangeRequestAction.UPDATE
         # Determine the record values based on the mapping mode
-        record_values = None
+        record_values: list[str] = []
         if sg_config_item.dns_config.mode == DnsRecordMappingMode.MULTIVALUE:
             record_values = resolved_values_destinations
 
         if sg_config_item.dns_config.mode == DnsRecordMappingMode.SINGLE:
-            record_values = [next(sorted(resolved_values, key=lambda x: x.instance_launch_timestamp, reverse=True))]
+            record_value: str = next(sorted(resolved_values, key=lambda x: x.instance_launch_timestamp, reverse=True))
+            record_values = [record_value]
 
-        if record_values is None:
+        if not record_values:
             # TODO: Revisit this edge case
             return IGNORED_DNS_CHANGE_REQUEST
 
@@ -223,7 +224,7 @@ class AwsDnsManagementService(DnsManagementInterface):
             action=action,
             record_values=record_values,
             record_name=sg_config_item.dns_config.record_name,
-            record_type=sg_config_item.dns_config.record_type,
+            record_type=DnsRecordType(sg_config_item.dns_config.record_type),
             record_ttl=sg_config_item.dns_config.record_ttl,
         )
 
@@ -231,7 +232,7 @@ class AwsDnsManagementService(DnsManagementInterface):
         self,
         sg_config_item: ScalingGroupConfiguration,
         record: Mapping[str, object],
-        resolved_values: list[MetadataResultModel],
+        resolved_values: list[str],
     ) -> DnsChangeRequestModel:
         """Handle the reconciliation lifecycle event.
 
@@ -243,12 +244,11 @@ class AwsDnsManagementService(DnsManagementInterface):
         Returns:
             DnsChangeRequestModel: The change request model.
         """
-        IGNORE_CHANGE_REQUEST = AwsDnsChangeRequestModel(action=DnsChangeRequestAction.IGNORE)
         current_record_values = self._extract_values_from_route53_record(sg_config_item, record)
-        resolved_values_destinations = [result.value for result in resolved_values]
+        resolved_values_destinations = [result for result in resolved_values]
         # If current values are the same as resolved values, ignore the change
         if current_record_values == resolved_values_destinations:
-            return IGNORE_CHANGE_REQUEST
+            return IGNORED_DNS_CHANGE_REQUEST
         # If resolved values are different from current values, create a change request
         action = DnsChangeRequestAction.UPDATE if record else DnsChangeRequestAction.CREATE
 
@@ -262,7 +262,7 @@ class AwsDnsManagementService(DnsManagementInterface):
 
         if record_values is None:
             # TODO: Revisit this edge case
-            return IGNORE_CHANGE_REQUEST
+            return IGNORED_DNS_CHANGE_REQUEST
 
         return AwsDnsChangeRequestModel(
             action=action,
@@ -283,99 +283,3 @@ class AwsDnsManagementService(DnsManagementInterface):
         if sg_config_item.dns_config.managed_dns_record and sg_config_item.dns_config.dns_mock_value in values:
             values.remove(sg_config_item.dns_config.dns_mock_value)
         return values
-
-    def remove_ip_from_record(
-        self,
-        hosted_zone_id: str,
-        record_name: str,
-        record_type: str,
-        # If DNS record is managed - we can't remove it, only update
-        managed_dns_record: bool,
-        dns_mock_value: str,
-        ip: str,
-    ) -> bool:
-        """Remove an IP from a record.
-
-        Args:
-            hosted_zone_id [str]: The ID of the hosted zone that contains the resource record sets that you want to change.
-            record_name [str]: The name of the resource record set that you want to change.
-            record_type [str]: The DNS record type.
-            dns_mock_value [str]: The mock value used for DNS address to be removed from the record.
-            ip [str]: The IP address to be removed from the record.
-
-        Returns:
-            bool: True if IP is removed from record, False otherwise
-        """
-        record_name = self._normalize_record_name(record_name, hosted_zone_id)
-        record = self.route_53_service.read_record(hosted_zone_id, record_name, record_type)
-        if not record:
-            return False
-        # Preserve the original values in case we need to remove the record
-        values_original = [value["Value"] for value in record["ResourceRecords"]]
-        # Duplicate IPs stripping the IP to be removed and the mock IP
-        values = [v for v in values_original if v != ip and v != dns_mock_value]
-        should_update = values and values != values_original
-        # Ensure we don't nuke the record if it's managed,'
-        # otherwise Terraform will not be happy
-        if not should_update and managed_dns_record:
-            should_update = True
-            values = [dns_mock_value]
-
-        # If any values are left, update the record, otherwise delete it
-        change_batch = DnsChangeRequestModel(
-            action="UPSERT" if should_update else "DELETE",
-            record_name=record_name,
-            record_type=record_type,
-            record_ttl=record["TTL"],
-            ips=values if should_update else values_original,
-        )
-        self.logger.debug(f"change_batch: {to_json(change_batch)}")
-        self.route_53_service.change_resource_record_sets(hosted_zone_id, change_batch)
-        return True
-
-    def add_ip_to_record(
-        self,
-        hosted_zone_id: str,
-        record_name: str,
-        record_type: str,
-        record_ttl: int,
-        dns_mock_value: str,
-        ip: str,
-    ) -> bool:
-        """Add an IP to a record.
-
-        Args:
-            hosted_zone_id [str]: The ID of the hosted zone that contains the resource record sets that you want to change.
-            record_name [str]: The name of the resource record set that you want to change.
-            record_type [str]: The DNS record type.
-            record_ttl [int]: The resource record cache time to live (TTL) in seconds.
-            dns_mock_value [str]: The mock value used for DNS address to be added to the record.
-            ip [str]: The IP address to be added to the record.
-
-        Returns:
-            bool: True if IP is added to record, False otherwise
-        """
-        record_name = self._normalize_record_name(record_name, hosted_zone_id)
-        record = self.route_53_service.read_record(hosted_zone_id, record_name, record_type)
-        if record:
-            values = [value["Value"] for value in record["ResourceRecords"] if value["Value"] != dns_mock_value]
-            if ip not in values:
-                values.append(ip)
-                change_batch = DnsChangeRequestModel(
-                    action="UPSERT",
-                    record_name=record_name,
-                    record_type=record_type,
-                    record_ttl=record_ttl,
-                    ips=values,
-                )
-        else:
-            change_batch = DnsChangeRequestModel(
-                action="CREATE",
-                record_name=record_name,
-                record_type=record_type,
-                record_ttl=record_ttl,
-                ips=[ip],
-            )
-        self.logger.debug(f"change_batch: {to_json(change_batch)}")
-        self.route_53_service.change_resource_record_sets(hosted_zone_id, change_batch)
-        return True

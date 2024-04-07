@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import Mapping, Any
 
+
 class RepositoryInterface(metaclass=ABCMeta):
     """Interface for repository service. Don't confuse this with Repository pattern."""
 
