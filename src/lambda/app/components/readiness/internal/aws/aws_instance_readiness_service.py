@@ -23,20 +23,26 @@ class AwsInstanceReadinessService(InstanceReadinessInterface):
         Returns:
             ReadinessResultModel: Model representing the readiness result
         """
-        readiness_model = ReadinessResultModel().with_instance_id(instance_id)
+        readiness_model = ReadinessResultModel(
+            instance_id=instance_id,
+        )
 
         if not readiness_config.enabled:
-            return readiness_model.with_ready()
+            readiness_model.ready = True
+            return readiness_model
 
         instance = self.ec2_service.get_instance(instance_id)
-        if not instance:
+        if instance is None:
+            readiness_model.ready = False
             return readiness_model
 
         tag_key = readiness_config.tag_key
         tag_value = readiness_config.tag_value
         tag_match = self._match_tag(tag_key, tag_value, instance.get("Tags", []))
 
-        return readiness_model.with_ready(ready=tag_match is not None)
+        # Update readiness model based on whether tag match was found
+        readiness_model.ready = tag_match is not None
+        return readiness_model
 
     @staticmethod
     def _match_tag(tag_key: str, tag_value: str, tags: Iterable[Mapping[str, Any]]) -> Mapping[str, Any] | None:

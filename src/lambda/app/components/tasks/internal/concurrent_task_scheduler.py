@@ -1,5 +1,5 @@
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
-from typing import Callable, ClassVar, Generator, NoReturn
+from typing import Any, Callable, ClassVar, Generator, NoReturn
 
 from app.components.tasks.task_scheduler_interface import TaskSchedulerInterface
 
@@ -36,9 +36,9 @@ class ConcurrentTaskScheduler(TaskSchedulerInterface):
         #     )
 
         self.executor = ThreadPoolExecutor(max_workers=self.max_workers)
-        self.futures: list[Future] = []
+        self.futures: list[Future[NoReturn]] = []
 
-    def place(self, task: Callable, *args, **kwargs) -> NoReturn:
+    def place(self, task: Callable[..., NoReturn], *args: Any, **kwargs: Any):
         """Immediately submits an I/O-bound task for execution.
 
         Args:
@@ -46,10 +46,10 @@ class ConcurrentTaskScheduler(TaskSchedulerInterface):
             *args: Task arguments
             **kwargs: Task keyword arguments
         """
-        future = self.executor.submit(task, *args, **kwargs)
+        future: Future[NoReturn] = self.executor.submit(task, *args, **kwargs)
         self.futures.append(future)
 
-    def retrieve(self) -> Generator[Future, None, None]:
+    def retrieve(self) -> Generator[Future[NoReturn] | Exception, None, None]:
         """A generator that yields completed tasks as they become available.
 
         Yields:
@@ -64,6 +64,7 @@ class ConcurrentTaskScheduler(TaskSchedulerInterface):
                 try:
                     yield future.result()
                 except Exception as exc:
+                    self.logger.error(f"Task execution failed: {exc}")
                     yield exc
                 self.futures.remove(future)
 

@@ -26,7 +26,7 @@ class DistributedLockService(DistributedLockInterface):
         Raises:
             CloudProviderException: When underlying cloud provider operation fails.
         """
-        resource_id = lock_key  # Explicit naming for context claritys
+        resource_id = lock_key  # Explicit naming for context clarity
         self.logger.debug(f"Checking lock for resource: {resource_id}")
         item = self.repository.get(resource_id)
         self.logger.debug(f"check_lock item: {to_json(item)}")
@@ -47,14 +47,14 @@ class DistributedLockService(DistributedLockInterface):
         resource_id = lock_key  # Explicit naming for context clarity
         self.logger.debug(f"Acquiring lock for resource: {resource_id}")
         try:
-            item = ({"resource_id": resource_id, "timestamp": int(time.time())},)
+            item = {"resource_id": resource_id, "timestamp": int(time.time())}
             response = self.repository.create(resource_id, item)
             self.logger.debug(f"acquire_lock response: {to_json(response)}")
             return bool(response)
         except CloudProviderException as e:
             raise e
         except Exception as e:
-            raise BusinessException(f"Error acquiring lock for resource: {resource_id}", e)
+            raise BusinessException(f"Error acquiring lock for resource: {resource_id}")
 
     def release_lock(self, lock_key: str) -> None:
         """Releases a lock on a resource.
@@ -72,4 +72,4 @@ class DistributedLockService(DistributedLockInterface):
         except CloudProviderException as e:
             raise e
         except Exception as e:
-            raise BusinessException(f"Error acquiring lock for resource: {resource_id}", e)
+            raise BusinessException(f"Error acquiring lock for resource: {resource_id}")

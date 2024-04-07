@@ -13,7 +13,7 @@ class RuntimeConfigurationService:
 
     def __init__(
         self,
-        repository: RepositoryInterface[str, dict[str, str]],
+        repository: RepositoryInterface,
         environment_config: EnvironmentConfigurationService,
     ):
         # Cache placeholder

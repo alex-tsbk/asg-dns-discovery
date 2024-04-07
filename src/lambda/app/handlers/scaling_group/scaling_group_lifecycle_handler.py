@@ -1,28 +1,19 @@
 from __future__ import annotations
 
-from time import sleep
-
 from app.components.dns.dns_management_interface import DnsManagementInterface
-from app.components.dns.models.dns_change_request_model import DnsChangeRequestModel
-from app.components.dns.models.dns_change_response_model import DnsChangeResponseModel
 from app.components.healthcheck.health_check_interface import HealthCheckInterface
 from app.components.lifecycle.instance_lifecycle_interface import InstanceLifecycleInterface
-from app.components.lifecycle.models.lifecycle_event_model import LifecycleAction, LifecycleEventModel
 from app.components.lifecycle.models.lifecycle_event_model_factory import LifecycleEventModelFactory
 from app.components.mutex.distributed_lock_interface import DistributedLockInterface
 from app.components.readiness.instance_readiness_interface import InstanceReadinessInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.config.models.readiness_config import ReadinessConfig
-from app.config.models.scaling_group_dns_config import ScalingGroupConfiguration, ScalingGroupConfigurations
 from app.config.runtime_configuration_service import RuntimeConfigurationService
 from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.handlers.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.handlers.handler_base import HandlerBase
-from app.handlers.handler_interface import HandlerInterface
-from app.handlers.instance.instance_readiness_handler import InstanceReadinessHandler
-from app.utils.di import Injectable, NamedInjectable
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
+from app.handlers.handler_context import HandlerContext
 
 
 class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
@@ -49,7 +40,7 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
         self.distributed_lock_service = distributed_lock_service
         self.dns_management_service = dns_management_service
 
-    def handle(self, context: ScalingGroupLifecycleContext) -> ScalingGroupLifecycleContext:
+    def handle(self, context: ScalingGroupLifecycleContext) -> HandlerContext:
         """Handle instance readiness lifecycle
 
         Args:
@@ -62,13 +53,13 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
         all_scaling_groups_configs = self.runtime_configuration_service.get_scaling_groups_dns_configs()
         if not all_scaling_groups_configs:
             self.logger.error("Unable to load Scaling Group DNS configurations.")
-            return False
+            raise BusinessException("Unable to load Scaling Group DNS configurations.")
 
         # Resolve all scaling group configurations for the current scaling group
         scaling_group_configs = all_scaling_groups_configs.for_scaling_group(event.scaling_group_name)
         if not scaling_group_configs:
             self.logger.warning(f"Scaling Group DNS configurations not found for ASG: {event.scaling_group_name}")
-            return False
+            raise BusinessException(f"Scaling Group DNS configurations not found for ASG: {event.scaling_group_name}")
 
         # For each scaling group dns configuration, gather information and perform appropriate actions
         for scaling_group_config in scaling_group_configs:
@@ -78,7 +69,7 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
                 readiness_config = self.env_configuration_service.readiness_config
 
             instance_lifecycle_context = InstanceLifecycleContext(
-                request_id=context.request_id,
+                context_id=context.context_id,
                 instance_id=event.instance_id,
                 scaling_group_config=scaling_group_config,
                 readiness_config=readiness_config,
@@ -88,14 +79,3 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
             context.register_instance_context(instance_lifecycle_context)
 
         return super().handle(context)
-        # # Check if health check is enabled
-        # health_check_enabled = (
-        #     scaling_group_config.health_check_config and scaling_group_config.health_check_config.enabled
-        # )
-        # if health_check_enabled:
-        #     # Perform health check
-        #     health_check_result = self.health_check_service.check(event.instance_id, scaling_group_config)
-        #     if not health_check_result:
-        #         completion_status = self.lifecycle_service.complete_lifecycle_action(event, LifecycleAction.ABANDON)
-        #         self.logger.info(f"Lifecycle completed successfully: {completion_status}")
-        #         return False

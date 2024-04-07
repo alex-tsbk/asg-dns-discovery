@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Mapping, Any
 
 from app.utils.dataclass import DataclassBase
 
@@ -9,6 +10,7 @@ class DnsChangeResponseModel(DataclassBase):
 
     success: bool
     message: str = field(default="")
+    metadata: Mapping[str, Any] = field(default_factory=dict)
 
     @classmethod
     def Success(cls):

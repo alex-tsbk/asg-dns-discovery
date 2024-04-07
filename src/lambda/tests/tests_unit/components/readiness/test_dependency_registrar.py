@@ -6,7 +6,7 @@ from app.components.readiness.instance_readiness_interface import InstanceReadin
 from app.components.readiness.internal.aws.aws_instance_readiness_service import AwsInstanceReadinessService
 
 
-def test_register_services_when_running_on_aws(aws_runtime: Callable[[None], None]):
+def test_register_services_when_running_on_aws(aws_runtime):
     di_container = MagicMock()
 
     register_services(di_container, MagicMock())

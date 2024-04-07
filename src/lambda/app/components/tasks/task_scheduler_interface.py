@@ -1,6 +1,6 @@
 import abc
 from concurrent.futures import Future
-from typing import Any, Callable, NoReturn, Sequence
+from typing import Any, Callable, NoReturn, Iterable
 
 
 class TaskSchedulerInterface(metaclass=abc.ABCMeta):
@@ -12,7 +12,7 @@ class TaskSchedulerInterface(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def retrieve(self) -> Sequence[Future[NoReturn]]:
+    def retrieve(self) -> Iterable[Future[NoReturn] | Exception]:
         """Retrieves the next completed task from the scheduler queue"""
         pass
 

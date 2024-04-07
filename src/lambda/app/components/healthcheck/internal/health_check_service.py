@@ -5,6 +5,7 @@ from app.components.healthcheck.health_check_interface import HealthCheckInterfa
 from app.components.healthcheck.models.health_check_result_model import HealthCheckResultModel
 from app.config.models.health_check_config import HealthCheckConfig, HealthCheckProtocol
 from app.utils.logging import get_logger
+from app.utils import instrumentation
 
 
 class HealthCheckService(HealthCheckInterface):
@@ -59,12 +60,18 @@ class HealthCheckService(HealthCheckInterface):
         self.logger.info(f"Performing TCP health check on {ip}:{port}")
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout_seconds)
+
+        @instrumentation.measure_time_taken
+        def _instrumented_connect(address: tuple[str, int]):
+            return sock.connect_ex(address)
+
         try:
-            result = sock.connect_ex((ip, port))
+            result, time_taken_ms = _instrumented_connect((ip, port))
             return HealthCheckResultModel(
                 healthy=result == 0,
                 protocol="TCP",
                 endpoint=f"{ip}:{port}",
+                time_taken_ms=time_taken_ms,
             )
         except socket.error as e:
             msg = f"Socket error: {e}"
@@ -101,14 +108,19 @@ class HealthCheckService(HealthCheckInterface):
         """
         url = f"{scheme}://{ip}:{port}{path}"
         self.logger.info(f"Sending HTTP request to {url}")
+
+        @instrumentation.measure_time_taken
+        def _instrumented_urlopen(url: str, timeout: int):
+            return urllib.request.urlopen(url, timeout=timeout)
+
         try:
-            response = urllib.request.urlopen(url, timeout=timeout_seconds)
+            response, time_taken_ms = _instrumented_urlopen(url, timeout=timeout_seconds)
             return HealthCheckResultModel(
                 healthy=response.getcode() == 200,
                 endpoint=ip,
                 protocol=scheme,
                 status=response.getcode(),
-                time_taken_s=response.getheader("X-Response-Time", 0),
+                time_taken_ms=time_taken_ms,
             )
         except Exception as e:
             self.logger.error(f"HTTP check failed: {e}")

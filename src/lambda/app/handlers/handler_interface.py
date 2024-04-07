@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
+from typing import TypeVar, Generic
 
-from .handler_context import HandlerContext
+from app.handlers.handler_context import HandlerContext
+
+T_contra = TypeVar("T_contra", contravariant=True, bound=HandlerContext)
 
 
-class HandlerInterface(metaclass=ABCMeta):
+class HandlerInterface(Generic[T_contra], metaclass=ABCMeta):
     """Interface for all handlers"""
 
     @abstractmethod
-    def handle(self, context: HandlerContext) -> HandlerContext:
+    def handle(self, context: T_contra) -> HandlerContext:
         """Method to handle the request
 
         Args:
-            context (HandlerContext): Context in which the handler is executed
+            context (T): Context in which the handler is executed. Contravariant type.
         """
         pass

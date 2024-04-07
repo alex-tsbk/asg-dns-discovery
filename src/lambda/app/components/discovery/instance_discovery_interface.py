@@ -4,7 +4,7 @@ from app.domain.models.instance_model import InstanceModel
 
 
 class InstanceDiscoveryInterface(metaclass=ABCMeta):
-    """Interface for discovering instances."""
+    """Interface for discovering information about instances."""
 
     @abstractmethod
     def describe_instances(self, *instances_ids: str) -> list[InstanceModel]:

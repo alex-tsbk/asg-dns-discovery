@@ -17,7 +17,7 @@ from app.utils.serialization import to_json
 from botocore.exceptions import ClientError
 
 
-class AwsDynamoDBRepository(RepositoryInterface[str, Mapping[str, Any]]):
+class AwsDynamoDBRepository(RepositoryInterface):
     """Repository for accessing items in DynamoDB table."""
 
     def __init__(self, environment_configuration_service: EnvironmentConfigurationService):
@@ -43,7 +43,7 @@ class AwsDynamoDBRepository(RepositoryInterface[str, Mapping[str, Any]]):
         except ClientError as e:
             raise CloudProviderException(e, f"Error getting item from DynamoDB table: {str(e)}")
 
-    def create(self, key: str, item: Mapping[str, Any]) -> object | None:
+    def create(self, key: str, item: Mapping[str, Any]) -> Mapping[str, Any] | None:
         """Create item in DynamoDB table.
 
         Args:
@@ -51,10 +51,9 @@ class AwsDynamoDBRepository(RepositoryInterface[str, Mapping[str, Any]]):
             item (dict): Item to be created in DynamoDB table.
 
         Returns:
-            dict: Item created in DynamoDB table
+            dict: Item created in storage. None if already exists.
 
         Raises:
-            CloudProviderException: When item already exists in the table.
             CloudProviderException: When underlying cloud provider operation fails.
         """
         try:
@@ -71,7 +70,7 @@ class AwsDynamoDBRepository(RepositoryInterface[str, Mapping[str, Any]]):
                 return None
             raise CloudProviderException(e, f"Error putting item in DynamoDB table: {str(e)}")
 
-    def put(self, key: str, item: Mapping[str, Any]) -> object | None:
+    def put(self, key: str, item: Mapping[str, Any]) -> Mapping[str, Any] | None:
         """Put item in DynamoDB table.
 
         Args:
@@ -82,7 +81,7 @@ class AwsDynamoDBRepository(RepositoryInterface[str, Mapping[str, Any]]):
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/table/put_item.html
             response = self.table.put_item(Item=item)
             self.logger.debug(f"put_item response: {to_json(response)}")
-            return item
+            return response
         except ClientError as e:
             raise CloudProviderException(e, f"Error putting item in DynamoDB table: {str(e)}")
 

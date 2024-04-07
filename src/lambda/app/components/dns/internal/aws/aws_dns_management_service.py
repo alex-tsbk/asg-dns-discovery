@@ -90,7 +90,7 @@ class AwsDnsManagementService(DnsManagementInterface):
         try:
             successful = self.route_53_service.change_resource_record_sets(
                 hosted_zone_id,
-                change,  # type: ignore -- underlying boto3 type now available at runtime
+                change,  # type: ignore -- underlying boto3 type not available at runtime
             )
             return DnsChangeResponseModel(success=successful)
         except Exception as e:

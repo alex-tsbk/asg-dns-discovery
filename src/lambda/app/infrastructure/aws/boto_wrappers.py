@@ -26,13 +26,18 @@ def paginated_call[T: Mapping[str, Any], K: Any](
 
     Usage example:
         ```python
-        def get_instances(self, instance_ids: Sequence[str]) -> list[InstanceTypeDef]:
+        instances: list[InstanceTypeDef] = []
+        kwargs: dict[str, Any] = {"InstanceIds": instance_ids}
 
-            @paginated_call('Reservations', 'NextToken', 'NextToken')
-            def invoke(**invoke_kwargs):
-                return ec2_client.describe_instances(**invoke_kwargs)
+        def selector(response: DescribeInstancesResultTypeDef) -> Iterable[ReservationTypeDef]:
+            return response["Reservations"]
 
-            kwargs =
+        @paginated_call(selector, "NextToken", "NextToken")
+        def describe_instances(**invoke_kwargs: Any) -> DescribeInstancesResultTypeDef:
+            return self.ec2_client.describe_instances(**invoke_kwargs)
+
+        resources = describe_instances(**kwargs)
+        instances.extend(*[resource["Instances"] for resource in resources])
         ```
     """
 

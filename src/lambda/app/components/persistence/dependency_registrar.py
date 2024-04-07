@@ -16,6 +16,6 @@ def register_services(di_container: DIContainer, env_config_service: Environment
     db_provider = env_config_service.db_config.provider
     if RUNTIME_CONTEXT.is_aws:
         if db_provider == "dynamodb":
-            from .internal.aws.aws_dynamodb_repository_service import AwsDynamoDBRepository
+            from .internal.aws.aws_dynamodb_repository import AwsDynamoDBRepository
 
             di_container.register(RepositoryInterface, AwsDynamoDBRepository, lifetime="scoped")

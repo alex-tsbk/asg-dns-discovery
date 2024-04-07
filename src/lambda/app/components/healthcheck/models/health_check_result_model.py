@@ -19,6 +19,8 @@ class HealthCheckResultModel(DataclassBase):
     endpoint: str = field(default="")
     # Instance id
     instance_id: str = field(default="")
+    # Scaling group name
+    scaling_group_name: str = field(default="")
     # Protocol used for the health check
     protocol: str = field(default="")
     # Status of the health check. Optional.
@@ -26,10 +28,10 @@ class HealthCheckResultModel(DataclassBase):
     # Message from the health check. Optional.
     message: str = field(default="")
     # Time taken for instance to become ready. In seconds. Optional.
-    time_taken_s: int = field(default=0)
+    time_taken_ms: float = field(default=0)
 
     def __str__(self) -> str:
-        return f"{self.protocol}:{self.endpoint}:{self.healthy} (instance_id:{self.instance_id};status:{self.status};msg:{self.message};time_s:{self.time_taken_s})"
+        return f"{self.protocol}:{self.endpoint}:{self.healthy} (instance_id:{self.instance_id};status:{self.status};msg:{self.message};time_s:{self.time_taken_ms})"
 
     def __hash__(self) -> int:
         return hash(str(self))

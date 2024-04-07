@@ -1,12 +1,11 @@
 from abc import ABCMeta, abstractmethod
-from typing import Hashable
+from typing import Mapping, Any
 
-
-class RepositoryInterface[T: Hashable, K](metaclass=ABCMeta):
+class RepositoryInterface(metaclass=ABCMeta):
     """Interface for repository service. Don't confuse this with Repository pattern."""
 
     @abstractmethod
-    def get(self, key: T) -> K:
+    def get(self, key: str) -> Mapping[str, Any] | None:
         """Gets item from storage.
 
         Args:
@@ -18,7 +17,7 @@ class RepositoryInterface[T: Hashable, K](metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def create(self, key: T, item: K) -> object | None:
+    def create(self, key: str, item: Mapping[str, Any]) -> Mapping[str, Any] | None:
         """Create item in DynamoDB table.
 
         Args:
@@ -31,7 +30,7 @@ class RepositoryInterface[T: Hashable, K](metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def put(self, key: T, item: K) -> object | None:
+    def put(self, key: str, item: Mapping[str, Any]) -> Mapping[str, Any] | None:
         """Put item in storage.
 
         Args:
@@ -43,7 +42,7 @@ class RepositoryInterface[T: Hashable, K](metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def delete(self, key: T) -> bool:
+    def delete(self, key: str) -> bool:
         """Delete item from storage.
 
         Args:

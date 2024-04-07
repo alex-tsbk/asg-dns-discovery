@@ -46,7 +46,9 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
             instances_models[instance_model.instance_id] = instance_model
 
         # Collect Auto Scaling Group instances information
-        scaling_groups = self.aws_asg_service.describe_instances(list(auto_scaling_group_names))
+        scaling_groups = self.aws_asg_service.describe_instances(
+            auto_scaling_group_names=list(auto_scaling_group_names)
+        )
         for _, scaling_group_instances in scaling_groups.items():
             for aws_asg_instance in scaling_group_instances:
                 instance_model = instances_models.get(aws_asg_instance["InstanceId"])
@@ -71,24 +73,27 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
         # We'll store the instances models in a dictionary for fast lookup
         instances_models: dict[str, InstanceModel] = {}
         # Collect Auto Scaling Group instances information
-        scaling_groups = self.aws_asg_service.describe_instances(scaling_groups_names)
+        scaling_groups = self.aws_asg_service.describe_instances(
+            auto_scaling_group_names=list(scaling_groups_names),
+        )
         for scaling_group_name, scaling_group_instances in scaling_groups.items():
             for aws_asg_instance in scaling_group_instances:
                 instance_model = InstanceModel(
                     instance_id=aws_asg_instance["InstanceId"],
                     scaling_group_name=scaling_group_name,
-                    instance_state=aws_asg_instance["State"]["Name"],
+                    lifecycle_state=aws_asg_instance["LifecycleState"],
                 )
                 instances_models[instance_model.instance_id] = instance_model
 
         # Collect EC2 instances information
         ec2_instances_ids = list(set(instances_models.keys()))
-        aws_instances = self.aws_ec2_service.get_instances(ec2_instances_ids)
+        aws_instances: list[InstanceTypeDef] = self.aws_ec2_service.get_instances(ec2_instances_ids)
         for aws_instance in aws_instances:
             instance_model = instances_models.get(aws_instance["InstanceId"])
             if not instance_model:
                 continue
             # Backfill missing data only
+            instance_model.instance_state = aws_instance.get("State", {}).get("Name", "")
             instance_model.instance_launch_timestamp = int(aws_instance["LaunchTime"].timestamp())
             self._fill_instance_metadata(instance_model, aws_instance)
             self._fill_instance_tags(instance_model, aws_instance)

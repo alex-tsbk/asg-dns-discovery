@@ -21,6 +21,10 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
     # Private attributes
     _change: ChangeTypeDef = field(init=False, repr=False)
 
+    def __post_init__(self):
+        """Need to call the parent's post-init method explicitly."""
+        return super().__post_init__()
+
     @override
     def get_change(self) -> ChangeBatchTypeDef:
         """Returns a fully-constructed change batch to update the IPs in the DNS record set for Route53.

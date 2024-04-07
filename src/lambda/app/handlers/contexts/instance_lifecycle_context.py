@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
+from app.domain.models.instance_model import InstanceModel
 from app.components.healthcheck.models.health_check_result_model import HealthCheckResultModel
 from app.components.readiness.models.readiness_result_model import ReadinessResultModel
 from app.config.models.health_check_config import HealthCheckConfig
@@ -13,13 +14,14 @@ from app.handlers.handler_context import HandlerContext
 class InstanceLifecycleContext(HandlerContext):
     """Context that tracks change of state over time for a single instance."""
 
-    request_id: str
     instance_id: str
     # config
     scaling_group_config: ScalingGroupConfiguration
-    readiness_config: ReadinessConfig
-    health_check_config: HealthCheckConfig
+    readiness_config: ReadinessConfig | None
+    health_check_config: HealthCheckConfig | None
     # state
+    instance_model: InstanceModel | None = field(default=None)
+    # results
     readiness_result: Optional[ReadinessResultModel] = field(default=None)
     health_check_result: Optional[HealthCheckResultModel] = field(default=None)
 

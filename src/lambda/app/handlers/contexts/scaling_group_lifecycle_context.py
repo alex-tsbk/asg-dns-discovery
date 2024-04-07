@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleEventModel
 from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.handlers.handler_context import HandlerContext
-from app.handlers.handler_interface import HandlerInterface
 
 
 @dataclass(kw_only=True)
@@ -12,8 +11,6 @@ class ScalingGroupLifecycleContext(HandlerContext):
 
     # Event that triggered the lifecycle handler
     event: LifecycleEventModel
-    # Instance context handler pipeline
-    instance_context_handler: HandlerInterface
     # Scaling group may have multiple DNS configurations declared,
     # which themselves may have different readiness and health check configurations.
     # Thus, same instance may be passing readiness and health checks for one DNS configuration,
@@ -30,7 +27,6 @@ class ScalingGroupLifecycleContext(HandlerContext):
             LifecycleContext: self
         """
         self.instances_contexts.append(instance_context)
-        self.instance_context_handler.handle(instance_context)
 
     def __post_init__(self):
         return super().__post_init__()

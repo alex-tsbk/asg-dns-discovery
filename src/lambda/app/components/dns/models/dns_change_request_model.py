@@ -46,15 +46,19 @@ class DnsChangeRequestAction(Enum):
     DELETE = "DELETE"
     # UPDATE: Update an existing record.
     UPDATE = "UPDATE"
-    # IGNORE: Do nothing.
+    # IGNORE: Do nothing. Used for cases where no action is required (actual record state matches the desired state)
     IGNORE = "IGNORE"
 
+    def __str__(self) -> str:
+        return self.value
+
     @staticmethod
-    def from_str(label: str):
+    def from_str(label: str) -> "DnsChangeRequestAction":
         """Returns the DNS change request action from the label"""
-        if not hasattr(DnsChangeRequestAction, label.upper()):
-            raise NotImplementedError(f"Unsupported action: {label}")
-        return DnsChangeRequestAction[label.upper()]
+        label = label.upper()
+        if hasattr(DnsChangeRequestAction, label):
+            return DnsChangeRequestAction[label.upper()]
+        raise NotImplementedError(f"Unsupported action: {label}")
 
 
 @dataclass(kw_only=True)
@@ -80,12 +84,12 @@ class DnsChangeRequestModel(DataclassBase):
         # Ensure required fields are set for non-IGNORE actions
         if self.action != DnsChangeRequestAction.IGNORE:
             if not self.record_name:
-                raise ValueError(f"Record name is required for DNS change request action '{self.action.value}'")
+                raise ValueError(f"Record name is required for DNS change request action '{self.action}'")
             if not self.record_type:
-                raise ValueError(f"Record type is required for DNS change request action '{self.action.value}'")
+                raise ValueError(f"Record type is required for DNS change request action '{self.action}'")
 
     def __str__(self) -> str:
-        return f"{self.record_name}/{self.record_type}/{self.action}/{', '.join(self.record_values)}"
+        return f"{self.action}/{self.record_name}/{self.record_type}/{', '.join(self.record_values)}"
 
     @abstractmethod
     def build_change(self) -> Self:
