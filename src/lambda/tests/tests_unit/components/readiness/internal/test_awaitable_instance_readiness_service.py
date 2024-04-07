@@ -18,7 +18,7 @@ def test_is_ready_when_underlying_service_ready(underlying_service):
         enabled=True, tag_key="tag_key", tag_value="tag_value", timeout_seconds=3, interval_seconds=1
     )
 
-    assert readiness_service.is_ready("instance_id", readiness_config) is True
+    assert readiness_service.is_ready("instance_id", readiness_config).ready is True
 
 
 @patch("app.components.readiness.internal.awaitable_instance_readiness_service.sleep", return_value=None)

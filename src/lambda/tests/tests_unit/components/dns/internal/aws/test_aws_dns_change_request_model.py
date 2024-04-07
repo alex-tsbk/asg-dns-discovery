@@ -2,6 +2,7 @@ import pytest
 from app.components.dns.internal.aws.aws_dns_change_request_model import (
     AwsDnsChangeRequestModel,
     DnsChangeRequestAction,
+    DnsRecordType,
 )
 
 
@@ -9,7 +10,7 @@ def test_get_change():
     model = AwsDnsChangeRequestModel(
         action=DnsChangeRequestAction.CREATE,
         record_name="example.com",
-        record_type="A",
+        record_type=DnsRecordType("A"),
     )
     model.record_type = "A"
     model._change = {
@@ -41,7 +42,7 @@ def test_build_change_with_A_record():
     model = AwsDnsChangeRequestModel(
         action=DnsChangeRequestAction.CREATE,
         record_name="example.com",
-        record_type="A",
+        record_type=DnsRecordType("A"),
         record_ttl=3600,
         record_values=["192.168.0.1", "192.168.0.2"],
     )
@@ -61,7 +62,7 @@ def test_build_change_with_unsupported_record_type():
     model = AwsDnsChangeRequestModel(
         action=DnsChangeRequestAction.CREATE,
         record_name="example.com",
-        record_type="CNAME",
+        record_type="UNSUPPORTED",
         record_ttl=3600,
         record_values=["example.com"],
     )

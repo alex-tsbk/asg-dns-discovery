@@ -71,16 +71,16 @@ def test_check_tcp_protocol(health_check_service: HealthCheckService, monkeypatc
     destination = "127.0.0.1"
     port = 8080
     timeout_seconds = 5
-    sg_dns_config = MagicMock()
-    sg_dns_config.health_check_config.protocol = HealthCheckProtocol.TCP
-    sg_dns_config.health_check_config.port = port
-    sg_dns_config.health_check_config.timeout_seconds = timeout_seconds
+    health_check_config = MagicMock()
+    health_check_config.protocol = HealthCheckProtocol.TCP
+    health_check_config.port = port
+    health_check_config.timeout_seconds = timeout_seconds
 
     mock_tcp_check = MagicMock()
     mock_tcp_check.return_value = HealthCheckResultModel(True)
     monkeypatch.setattr(health_check_service, "_tcp_check", mock_tcp_check)
 
-    result = health_check_service.check(destination, sg_dns_config)
+    result = health_check_service.check(destination, health_check_config)
 
     assert result.healthy is True
 
@@ -91,17 +91,17 @@ def test_check_http_protocol(health_check_service: HealthCheckService, monkeypat
     port = 8080
     path = "/health"
     timeout_seconds = 5
-    sg_dns_config = MagicMock()
-    sg_dns_config.health_check_config.protocol = HealthCheckProtocol.HTTP
-    sg_dns_config.health_check_config.port = port
-    sg_dns_config.health_check_config.path = path
-    sg_dns_config.health_check_config.timeout_seconds = timeout_seconds
+    health_check_config = MagicMock()
+    health_check_config.protocol = HealthCheckProtocol.HTTP
+    health_check_config.port = port
+    health_check_config.path = path
+    health_check_config.timeout_seconds = timeout_seconds
 
     mock_http_check = MagicMock()
     mock_http_check.return_value = HealthCheckResultModel(True)
     monkeypatch.setattr(health_check_service, "_http_check", mock_http_check)
 
-    result = health_check_service.check(destination, sg_dns_config)
+    result = health_check_service.check(destination, health_check_config)
 
     assert result.healthy
 
