@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Mapping, Any
+from typing import Any, Mapping
 
 from app.utils.dataclass import DataclassBase
 

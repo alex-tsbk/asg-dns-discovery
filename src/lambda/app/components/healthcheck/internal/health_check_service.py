@@ -4,8 +4,8 @@ import urllib.request
 from app.components.healthcheck.health_check_interface import HealthCheckInterface
 from app.components.healthcheck.models.health_check_result_model import HealthCheckResultModel
 from app.config.models.health_check_config import HealthCheckConfig, HealthCheckProtocol
-from app.utils.logging import get_logger
 from app.utils import instrumentation
+from app.utils.logging import get_logger
 
 
 class HealthCheckService(HealthCheckInterface):

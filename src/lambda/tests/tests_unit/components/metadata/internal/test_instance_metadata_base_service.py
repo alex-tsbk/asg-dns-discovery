@@ -4,7 +4,7 @@
 # from app.components.metadata.internal.instance_metadata_base_service import InstanceMetadataBaseService
 # from app.components.metadata.models.metadata_result_model import MetadataResultModel
 # from app.config.models.dns_record_config import DnsRecordConfig
-# from app.config.models.scaling_group_dns_config import ScalingGroupConfiguration
+# from app.config.models.scaling_group_config import ScalingGroupConfiguration
 
 
 # class MockDnsValueResolverService(InstanceMetadataBaseService):

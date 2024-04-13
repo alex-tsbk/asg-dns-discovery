@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from app.utils import instrumentation
 from app.components.healthcheck.health_check_interface import HealthCheckInterface
 from app.components.healthcheck.models.health_check_result_model import HealthCheckResultModel
 from app.components.metadata.instance_metadata_interface import InstanceMetadataInterface
+from app.components.metadata.models.metadata_result_model import MetadataResultModel
 from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.handlers.handler_base import HandlerBase
-from app.utils.logging import get_logger
 from app.handlers.handler_context import HandlerContext
+from app.utils import instrumentation
 from app.utils.exceptions import BusinessException
-from app.components.metadata.models.metadata_result_model import MetadataResultModel
+from app.utils.logging import get_logger
 
 
 class InstanceHealthCheckHandler(HandlerBase[InstanceLifecycleContext]):

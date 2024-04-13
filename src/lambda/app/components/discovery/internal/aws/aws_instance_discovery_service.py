@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
 from app.domain.models.instance_model import InstanceMetadataModel, InstanceModel, InstanceTagModel
+from app.domain.models.scaling_group_model import ScalingGroupModel
 from app.infrastructure.aws.ec2_asg_service import AwsEc2AutoScalingService
 from app.infrastructure.aws.ec2_service import AwsEc2Service
 from app.utils.logging import get_logger
@@ -61,14 +62,14 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
         result = list(instances_models.values())
         return result
 
-    def describe_scaling_groups(self, *scaling_groups_names: str) -> list[InstanceModel]:
+    def describe_scaling_groups(self, *scaling_groups_names: str) -> list[ScalingGroupModel]:
         """Get the instances in the scaling group.
 
         Args:
             *scaling_groups_names (str): The names of the scaling groups to describe.
 
         Returns:
-            list[InstanceModel]: Models describing the instances.
+            list[ScalingGroupModel]: Models describing the instances.
         """
         # We'll store the instances models in a dictionary for fast lookup
         instances_models: dict[str, InstanceModel] = {}
@@ -98,9 +99,13 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
             self._fill_instance_metadata(instance_model, aws_instance)
             self._fill_instance_tags(instance_model, aws_instance)
 
-        # Build result list
-        result = list(instances_models.values())
-        return result
+        # Build result
+        result: dict[str, ScalingGroupModel] = {}
+        for instance in instances_models.values():
+            if instance.scaling_group_name not in result:
+                result[instance.scaling_group_name] = ScalingGroupModel(scaling_group_name=instance.scaling_group_name)
+            result[instance.scaling_group_name].instances.append(instance)
+        return list(result.values())
 
     @classmethod
     def _build_instance_model(cls, aws_instance_info: InstanceTypeDef) -> InstanceModel:

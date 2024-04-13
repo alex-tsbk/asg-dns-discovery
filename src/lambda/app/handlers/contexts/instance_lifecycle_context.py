@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from app.domain.models.instance_model import InstanceModel
 from app.components.healthcheck.models.health_check_result_model import HealthCheckResultModel
 from app.components.readiness.models.readiness_result_model import ReadinessResultModel
 from app.config.models.health_check_config import HealthCheckConfig
 from app.config.models.readiness_config import ReadinessConfig
-from app.config.models.scaling_group_dns_config import ScalingGroupConfiguration
+from app.config.models.scaling_group_config import ScalingGroupConfiguration
+from app.domain.models.instance_model import InstanceModel
 from app.handlers.handler_context import HandlerContext
 
 

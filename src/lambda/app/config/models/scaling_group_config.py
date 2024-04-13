@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional, override
+from typing import Any, Optional, override, Self
 
 from app.config.models.dns_record_config import DnsRecordConfig
 from app.config.models.health_check_config import HealthCheckConfig
@@ -17,10 +17,10 @@ class ScalingGroupProceedMode(Enum):
     # When ASG has multiple DNS configurations, proceed with applying changes if current configuration
     # is considered 'ready' and 'healthy'.
     SELF_OPERATIONAL = "SELF_OPERATIONAL"
-    # When ASG has multiple DNS configurations, proceed with applying changes if at more than 50% of configurations
+    # When ASG has multiple DNS configurations, proceed with applying changes if at least 50% of configurations
     # for the same ASG are considered 'ready' and 'healthy'. If there are 2 configurations, at least 1 configuration
     # should be considered 'ready' and 'healthy' (50%).
-    MAJORITY_OPERATIONAL = "MAJORITY_OPERATIONAL"
+    HALF_OPERATIONAL = "HALF_OPERATIONAL"
 
 
 @dataclass
@@ -75,7 +75,7 @@ class ScalingGroupConfiguration(DataclassBase):
 
     @override
     @classmethod
-    def from_dict(cls, data: dict[str, Any]):
+    def from_dict(cls, data: dict[str, Any]) -> Self:
         kwargs: dict[str, Any] = {
             "scaling_group_name": data.get("scaling_group_name"),
             "dns_config": DnsRecordConfig.from_dict(data.get("dns_config", {})),
@@ -94,7 +94,7 @@ class ScalingGroupConfiguration(DataclassBase):
         if readiness_config:
             kwargs["readiness_config"] = ReadinessConfig.from_dict(readiness_config)
         # Initialize the config
-        return ScalingGroupConfiguration(**kwargs)
+        return cls(**kwargs)
 
 
 @dataclass

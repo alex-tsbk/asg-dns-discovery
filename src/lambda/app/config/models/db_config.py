@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import override
+from typing import override, Self
 
 from app.utils.dataclass import DataclassBase
 
@@ -12,7 +12,7 @@ class DbConfig(DataclassBase):
 
     @override
     @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "DbConfig":
+    def from_dict(cls, data: dict[str, str]) -> Self:
         """
         Converts dictionary to DbConfig object
 
@@ -23,4 +23,4 @@ class DbConfig(DataclassBase):
             "config_item_key_id": "<dynamo_table_key_id>"
         }
         """
-        return DbConfig(**data)
+        return cls(**data)

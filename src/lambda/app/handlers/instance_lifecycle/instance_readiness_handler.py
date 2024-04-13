@@ -6,9 +6,9 @@ from app.components.readiness.instance_readiness_interface import InstanceReadin
 from app.components.readiness.models.readiness_result_model import ReadinessResultModel
 from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.handlers.handler_base import HandlerBase
-from app.utils.logging import get_logger
 from app.handlers.handler_context import HandlerContext
 from app.utils import instrumentation
+from app.utils.logging import get_logger
 
 
 class InstanceReadinessHandler(HandlerBase[InstanceLifecycleContext]):

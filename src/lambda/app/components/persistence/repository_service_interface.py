@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Mapping, Any
+from typing import Any, Mapping
 
 
 class RepositoryInterface(metaclass=ABCMeta):

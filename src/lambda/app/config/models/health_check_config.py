@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, override
+from typing import Any, override, Self
 
 from app.utils.dataclass import DataclassBase
 
@@ -64,7 +64,7 @@ class HealthCheckConfig(DataclassBase):
 
     @override
     @classmethod
-    def from_dict(cls, data: dict[str, Any]):
+    def from_dict(cls, data: dict[str, Any]) -> Self:
         """
         Create a HealthCheckConfig from a dictionary.
         Example:
@@ -77,7 +77,7 @@ class HealthCheckConfig(DataclassBase):
             "timeout_seconds": 5
         }
         """
-        return HealthCheckConfig(
+        return cls(
             enabled=str(data.get("enabled", False)).lower() == "true",
             endpoint_source=data.get("endpoint_source", "ip:private"),
             path=data.get("path", ""),

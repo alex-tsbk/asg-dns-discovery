@@ -1,5 +1,4 @@
-from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING
 
 from app.components.dns.dns_management_interface import DnsManagementInterface
 from app.components.dns.internal.aws.aws_dns_change_request_model import AwsDnsChangeRequestModel
@@ -10,14 +9,16 @@ from app.components.dns.models.dns_change_request_model import (
     DnsRecordType,
 )
 from app.components.dns.models.dns_change_response_model import DnsChangeResponseModel
-from app.components.lifecycle.models.lifecycle_event_model import LifecycleEventModel, LifecycleTransition
-from app.components.metadata.instance_metadata_interface import InstanceMetadataInterface
-from app.components.metadata.models.metadata_result_model import MetadataResultModel
-from app.config.models.dns_record_config import DnsRecordMappingMode
-from app.config.models.scaling_group_dns_config import ScalingGroupConfiguration
+from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
+from app.config.models.dns_record_config import DnsRecordEmptyValueMode, DnsRecordMappingMode
 from app.infrastructure.aws.route53_service import Route53Service
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
+
+from app.components.dns.models.dns_change_command import DnsChangeCommand, DnsChangeCommandAction
+
+if TYPE_CHECKING:
+    from mypy_boto3_route53.type_defs import ResourceRecordSetTypeDef
 
 
 class AwsDnsManagementService(DnsManagementInterface):
@@ -26,64 +27,50 @@ class AwsDnsManagementService(DnsManagementInterface):
     def __init__(
         self,
         route_53_service: Route53Service,
-        instance_metadata_service: InstanceMetadataInterface,
+        instance_discovery_service: InstanceDiscoveryInterface,
     ) -> None:
         self.logger = get_logger()
         self.route_53_service = route_53_service
-        self.instance_metadata_service = instance_metadata_service
+        self.instance_discovery_service = instance_discovery_service
 
-    def generate_change_request(
-        self, sg_config_item: ScalingGroupConfiguration, lifecycle_event: LifecycleEventModel
-    ) -> DnsChangeRequestModel:
-        """For a given set of input parameters, generate a change set to update the values for DNS record.
+    def generate_change_request(self, dns_change_command: DnsChangeCommand) -> DnsChangeRequestModel:
+        """Generate a change request to update the DNS record based on the command.
 
         Args:
-            sg_config_item [str]: The Scaling Group DNS configuration item.
-            lifecycle_event [LifecycleEventModel]: The lifecycle event.
+            dns_change_command [DnsChangeRequestCommand]: The command describing to perform the DNS change request.
 
         Returns:
             DnsChangeRequestModel: The model that represents the change set to update the value of the DNS record.
-
-        Raises:
-            NotImplementedError: If the lifecycle event transition is not supported.
         """
-        record_name = sg_config_item.dns_config.record_name
-        hosted_zone_id = sg_config_item.dns_config.dns_zone_id
-        record_type = DnsRecordType(sg_config_item.dns_config.record_type)
+        dns_config = dns_change_command.dns_config
+        record_name = dns_config.record_name
+        hosted_zone_id = dns_config.dns_zone_id
+        record_type = DnsRecordType(dns_config.record_type)
 
         record_name = self._normalize_record_name(record_name, hosted_zone_id)
         record = self.route_53_service.read_record(hosted_zone_id, record_name, record_type.value)
         if not record:
             return IGNORED_DNS_CHANGE_REQUEST
 
-        # Describe instance for the current lifecycle event, or for entire ASG
+        if dns_change_command.action == DnsChangeCommandAction.APPEND:
+            return self._handle_launching(dns_change_command, record)
 
-        resolved_values: list[str] = self.instance_metadata_service.resolve_value(sg_config_item, lifecycle_event)
+        if dns_change_command.action == DnsChangeCommandAction.REMOVE:
+            return self._handle_draining(dns_change_command, record)
 
-        if lifecycle_event.transition == LifecycleTransition.DRAINING:
-            return self._handle_draining(sg_config_item, record, resolved_values)
-
-        if lifecycle_event.transition == LifecycleTransition.LAUNCHING:
-            return self._handle_launching(sg_config_item, record, resolved_values)
-
-        if lifecycle_event.transition == LifecycleTransition.RECONCILING:
-            return self._handle_reconciliation(sg_config_item, record, resolved_values)
+        if dns_change_command.action == DnsChangeCommandAction.REPLACE:
+            return self._handle_reconciliation(dns_change_command, record)
 
         # If the lifecycle event transition is not supported, ignore the change
-        return AwsDnsChangeRequestModel(
-            action=DnsChangeRequestAction.IGNORE, record_name=record_name, record_type=record_type
-        )
+        return IGNORED_DNS_CHANGE_REQUEST
 
-    def apply_change_request(
-        self, sg_config_item: ScalingGroupConfiguration, change_request: DnsChangeRequestModel
-    ) -> DnsChangeResponseModel:
+    def apply_change_request(self, change_request: DnsChangeRequestModel) -> DnsChangeResponseModel:
         """Apply the change request to the DNS record.
 
         Args:
-            sg_config_item [ScalingGroupConfiguration]: The Scaling Group DNS configuration item.
             change_request [DnsChangeRequestModel]: The change request to apply.
         """
-        hosted_zone_id = sg_config_item.dns_config.dns_zone_id
+        hosted_zone_id = change_request.hosted_zone_id
         # Build and convert change request to AWS Route53 format
         change = change_request.build_change().get_change()
         self.logger.debug(f"Applying change request for hosted zone: {hosted_zone_id} -> {to_json(change)}")
@@ -114,172 +101,185 @@ class AwsDnsManagementService(DnsManagementInterface):
         return record_name
 
     def _handle_draining(
-        self,
-        sg_config_item: ScalingGroupConfiguration,
-        record: Mapping[str, object],
-        resolved_values: list[str],
+        self, dns_change_command: DnsChangeCommand, record: ResourceRecordSetTypeDef
     ) -> DnsChangeRequestModel:
         """
         Handle the draining lifecycle event.
 
         Args:
-            sg_config_item [ScalingGroupConfiguration]: The Scaling Group DNS configuration item.
+            dns_change_command [DnsChangeCommand]: The DNS change command.
             record [dict]: The Route53 record.
-            resolved_values [list[MetadataResultModel]]: The resolved values for the current lifecycle.
 
         Returns:
             DnsChangeRequestModel: The change request model.
         """
-        record_name = sg_config_item.dns_config.record_name
-        record_type = DnsRecordType(sg_config_item.dns_config.record_type)
-
         if not record:
             return IGNORED_DNS_CHANGE_REQUEST
 
         # Extract the current values from the record
-        current_record_values_original = self._extract_values_from_route53_record(sg_config_item, record)
-        if not current_record_values_original:
+        current_record_values: list[str] = self._extract_values_from_route53_record(record)
+        removable_dns_record_values: list[str] = self._extract_dns_record_values(dns_change_command)
+        if not current_record_values:
             return IGNORED_DNS_CHANGE_REQUEST
 
-        # Create duplicate of the current values, to preserve the original values in case we need to remove the record
-        # Also, since we're draining, we want to remove the resolved value from the record set
-        current_record_values_altered = [
-            value for value in current_record_values_original if value not in resolved_values
+        # Compute values that should be left in the record
+        desired_dns_record_values = [
+            value for value in current_record_values if value not in removable_dns_record_values
         ]
         # Check if any values are left
-        has_values = bool(current_record_values_altered)
-        # If no values are left, and DNS record is managed - we can't remove it,
-        # only update it to the mock IP. Otherwise, Terraform will not be happy.
-        if not has_values and sg_config_item.dns_config.managed_dns_record:
-            has_values = True  # We need to update the record to the mock IP
-            current_record_values_altered = [sg_config_item.dns_config.dns_mock_value]
-        # Build common kwargs for change request
-        change_request_kwargs: dict[str, Any] = {
-            "record_name": record_name,
-            "record_type": record_type,
-            "record_ttl": record["TTL"],
-            "record_weight": sg_config_item.dns_config.record_weight,
-            "record_priority": sg_config_item.dns_config.record_priority,
-        }
-        # If no values are left, delete the record.
-        if not has_values:
-            return AwsDnsChangeRequestModel(
-                action=DnsChangeRequestAction.DELETE,
-                record_values=current_record_values_original,  # Pass the original values to the change request for removal
-                **change_request_kwargs,
-            )
-        # If any values are left, update the record
-        return AwsDnsChangeRequestModel(
-            action=DnsChangeRequestAction.UPDATE,
-            record_values=current_record_values_altered,
-            **change_request_kwargs,
+        has_values = bool(desired_dns_record_values)
+        # Create a base change request model response
+        dns_change_request_model_response = AwsDnsChangeRequestModel.from_dns_record_config(
+            dns_change_command.dns_config
         )
+        # Decide how to handle thi
+        if not has_values:
+            # Basically, do nothing if no values are left
+            if dns_change_command.dns_config.empty_mode == DnsRecordEmptyValueMode.KEEP:
+                return IGNORED_DNS_CHANGE_REQUEST
+            # Delete the record if no values are left
+            if dns_change_command.dns_config.empty_mode == DnsRecordEmptyValueMode.DELETE:
+                dns_change_request_model_response.action = DnsChangeRequestAction.DELETE
+                dns_change_request_model_response.record_values = current_record_values
+                return dns_change_request_model_response
+            # Use a fixed value if no values are left
+            if dns_change_command.dns_config.empty_mode == DnsRecordEmptyValueMode.FIXED:
+                dns_change_request_model_response.action = DnsChangeRequestAction.UPDATE
+                dns_change_request_model_response.record_values = [dns_change_command.dns_config.empty_mode_value]
+                return dns_change_request_model_response
+
+        # If any values are left, update the record
+        dns_change_request_model_response.action = DnsChangeRequestAction.UPDATE
+        dns_change_request_model_response.record_values = desired_dns_record_values
+        return dns_change_request_model_response
 
     def _handle_launching(
-        self,
-        sg_config_item: ScalingGroupConfiguration,
-        record: Mapping[str, object],
-        resolved_values: list[str],
+        self, dns_change_command: DnsChangeCommand, record: ResourceRecordSetTypeDef
     ) -> DnsChangeRequestModel:
         """Handle the launching lifecycle event.
 
         Args:
-            sg_config_item [ScalingGroupConfiguration]: The Scaling Group DNS configuration item.
+            dns_change_command [DnsChangeCommand]: The DNS change command.
             record [dict]: The Route53 record.
-            resolved_values [list[MetadataResultModel]]: The resolved values for the current lifecycle.
 
         Returns:
             DnsChangeRequestModel: The change request model.
         """
-        if not resolved_values:
+        if not dns_change_command.values:
             # If no resolved values, ignore the change
             return IGNORED_DNS_CHANGE_REQUEST
 
-        current_record_values = self._extract_values_from_route53_record(sg_config_item, record)
-        resolved_values_destinations = [result for result in resolved_values]
+        dns_config = dns_change_command.dns_config
+
+        current_dns_record_values: list[str] = self._extract_values_from_route53_record(record)
+        additional_dns_record_values: list[str] = self._extract_dns_record_values(dns_change_command)
+
         # If resolved_values a subset of current_record_values, ignore the change
-        if set(resolved_values_destinations).issubset(set(current_record_values)):
+        # (or both sets are empty, which is also an edge case)
+        if set(additional_dns_record_values).issubset(set(current_dns_record_values)):
             return IGNORED_DNS_CHANGE_REQUEST
 
         # Augment current record values with resolved values
-        current_record_values.extend(resolved_values_destinations)
-        # Remove duplicates
-        current_record_values = list(set(current_record_values))
+        desired_dns_record_values: list[str] = []
+        if dns_config.mode == DnsRecordMappingMode.SINGLE_LATEST:
+            desired_dns_record_values = additional_dns_record_values
+
+        if dns_config.mode == DnsRecordMappingMode.MULTIVALUE:
+            desired_dns_record_values = current_dns_record_values.copy()
+            desired_dns_record_values.extend(additional_dns_record_values)
+
+        if not desired_dns_record_values:
+            return IGNORED_DNS_CHANGE_REQUEST
+
         # Create a change request
         action = DnsChangeRequestAction.CREATE if not record else DnsChangeRequestAction.UPDATE
-        # Determine the record values based on the mapping mode
-        record_values: list[str] = []
-        if sg_config_item.dns_config.mode == DnsRecordMappingMode.MULTIVALUE:
-            record_values = resolved_values_destinations
-
-        if sg_config_item.dns_config.mode == DnsRecordMappingMode.SINGLE:
-            record_value: str = next(sorted(resolved_values, key=lambda x: x.instance_launch_timestamp, reverse=True))
-            record_values = [record_value]
-
-        if not record_values:
-            # TODO: Revisit this edge case
-            return IGNORED_DNS_CHANGE_REQUEST
 
         return AwsDnsChangeRequestModel(
             action=action,
-            record_values=record_values,
-            record_name=sg_config_item.dns_config.record_name,
-            record_type=DnsRecordType(sg_config_item.dns_config.record_type),
-            record_ttl=sg_config_item.dns_config.record_ttl,
+            hosted_zone_id=dns_config.dns_zone_id,
+            record_name=dns_config.record_name,
+            record_type=DnsRecordType(dns_config.record_type),
+            record_ttl=dns_config.record_ttl,
+            record_weight=dns_config.srv_weight,
+            record_priority=dns_config.srv_priority,
+            record_port=dns_config.srv_port,
+            record_values=desired_dns_record_values,
         )
 
     def _handle_reconciliation(
-        self,
-        sg_config_item: ScalingGroupConfiguration,
-        record: Mapping[str, object],
-        resolved_values: list[str],
+        self, dns_change_command: DnsChangeCommand, record: ResourceRecordSetTypeDef
     ) -> DnsChangeRequestModel:
         """Handle the reconciliation lifecycle event.
 
         Args:
-            sg_config_item [ScalingGroupConfiguration]: The Scaling Group DNS configuration item.
+            dns_change_command [DnsChangeCommand]: The DNS change command.
             record [dict]: The Route53 record.
-            resolved_values [list[MetadataResultModel]]: The resolved values for the current lifecycle.
 
         Returns:
             DnsChangeRequestModel: The change request model.
         """
-        current_record_values = self._extract_values_from_route53_record(sg_config_item, record)
-        resolved_values_destinations = [result for result in resolved_values]
-        # If current values are the same as resolved values, ignore the change
-        if current_record_values == resolved_values_destinations:
+        dns_config = dns_change_command.dns_config
+
+        current_dns_record_values: list[str] = self._extract_values_from_route53_record(record)
+        desired_dns_record_values: list[str] = self._extract_dns_record_values(dns_change_command)
+
+        # If current values are the same as desired values, ignore the change
+        if set(current_dns_record_values) == set(desired_dns_record_values):
             return IGNORED_DNS_CHANGE_REQUEST
+
         # If resolved values are different from current values, create a change request
         action = DnsChangeRequestAction.UPDATE if record else DnsChangeRequestAction.CREATE
 
-        # Determine the record values based on the mapping mode
-        record_values = None
-        if sg_config_item.mode == DnsRecordMappingMode.MULTIVALUE:
-            record_values = resolved_values_destinations
-
-        if sg_config_item.mode == DnsRecordMappingMode.SINGLE:
-            record_values = [next(sorted(resolved_values, key=lambda x: x.instance_launch_timestamp, reverse=True))]
-
-        if record_values is None:
+        if not desired_dns_record_values:
+            # Basically, we can't have DNS record without values.
             # TODO: Revisit this edge case
             return IGNORED_DNS_CHANGE_REQUEST
 
         return AwsDnsChangeRequestModel(
             action=action,
-            record_values=record_values,
-            record_name=sg_config_item.dns_config.record_name,
-            record_type=sg_config_item.dns_config.record_type,
-            record_ttl=sg_config_item.dns_config.record_ttl,
+            hosted_zone_id=dns_config.dns_zone_id,
+            record_name=dns_config.record_name,
+            record_type=DnsRecordType(dns_config.record_type),
+            record_ttl=dns_config.record_ttl,
+            record_weight=dns_config.srv_weight,
+            record_priority=dns_config.srv_priority,
+            record_port=dns_config.srv_port,
+            record_values=desired_dns_record_values,
         )
 
-    def _extract_values_from_route53_record(
-        self, sg_config_item: ScalingGroupConfiguration, record: Mapping[str, object]
-    ) -> list[str]:
-        """Extract values from Route53 record DNS record."""
+    def _extract_values_from_route53_record(self, record: ResourceRecordSetTypeDef) -> list[str]:
+        """Extract values from Route53 record DNS record.
+
+        Returns:
+            list[str]: The DNS record values sorted in ascending order.
+        """
         if not record or "ResourceRecords" not in record:
             return []
         values = [value["Value"] for value in record["ResourceRecords"]]
-        # If managed DNS record and mock IP is in the values, remove it
-        if sg_config_item.dns_config.managed_dns_record and sg_config_item.dns_config.dns_mock_value in values:
-            values.remove(sg_config_item.dns_config.dns_mock_value)
-        return values
+        return sorted(values)
+
+    @staticmethod
+    def _extract_dns_record_values(dns_change_command: DnsChangeCommand) -> list[str]:
+        """Extracts the desired DNS record values from the DNS change command.
+
+        Args:
+            dns_change_command (DnsChangeCommand): The DNS change command.
+
+        Returns:
+            list[str]: The desired DNS record values sorted in ascending order.
+        """
+        dns_config = dns_change_command.dns_config
+        desired_record_values: list[str] = []
+        if dns_config.mode == DnsRecordMappingMode.MULTIVALUE:
+            desired_record_values = sorted([value_item.dns_value for value_item in dns_change_command.values])
+
+        if dns_config.mode == DnsRecordMappingMode.SINGLE_LATEST:
+            # Get the most recent operational instance
+            most_recent_operational_instance = sorted(
+                dns_change_command.values,
+                key=lambda x: x.launch_time,
+                reverse=True,
+            )[0]
+            desired_record_values = [most_recent_operational_instance.dns_value]
+
+        return desired_record_values

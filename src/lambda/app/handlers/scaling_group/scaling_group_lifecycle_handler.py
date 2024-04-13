@@ -11,9 +11,9 @@ from app.config.runtime_configuration_service import RuntimeConfigurationService
 from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.handlers.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.handlers.handler_base import HandlerBase
+from app.handlers.handler_context import HandlerContext
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
-from app.handlers.handler_context import HandlerContext
 
 
 class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):

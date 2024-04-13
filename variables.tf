@@ -27,25 +27,26 @@ variable "records" {
     scaling_group_name = string
 
     # Determines how exactly to proceed with making DNS changes in the situations
-    # when Scaling Group has multiple configurations, but not all of them are 'operational'.
+    # when Scaling Group has multiple configurations, but not all of them are 'operational' (passing readiness and health checks).
     # Supported values:
     # * 'ALL_OPERATIONAL' - will proceed with DNS changes only when all configurations are operational.
     # * 'SELF_OPERATIONAL' - will proceed with DNS changes if current configuration is operational.
-    # * 'MAJORITY_OPERATIONAL' - will proceed with DNS changes if majority of configurations are operational (>=50%).
+    # * 'HALF_OPERATIONAL' - will proceed with DNS changes if at least half of configurations are operational (>=50%).
+    #
     # Example:
-    #  * You have 2 configurations for the same ASG, one tracks 'public ip' and updates CloudFlare DNS,
+    #  * You have 2 configurations for the same ASG, one tracks 'public ip' and updates Cloudflare DNS,
     #    and another tracks 'private ip' and updates Route53 DNS (private hosted zone).
-    #    Imagine configuration for Cloudflare is 'operational', but Route53 is not.
+    #    Presumably configuration for Cloudflare is 'operational', but for Route53 - not.
     #
     #    The Clouflare configuration (healthy) in the example above will:
     #    - if set to 'ALL_OPERATIONAL' - DNS changes will not proceed (Route53 config for same ASG is failing).
     #    - if set to 'SELF_OPERATIONAL' - DNS changes will proceed for this config only (Even though Route53 config for same ASG is failing).
-    #    - if set to 'MAJORITY_OPERATIONAL' - DNS changes will proceed for this config only (1/2 is operational, >=50%).
+    #    - if set to 'HALF_OPERATIONAL' - DNS changes will proceed for this config only (1/2 is operational, >=50%).
     #
     #    The Route53 configuration (failing) in the example above will:
     #    - if set to 'ALL_OPERATIONAL' - DNS changes will not proceed.
     #    - if set to 'SELF_OPERATIONAL' - DNS changes will not proceed.
-    #    - if set to 'MAJORITY_OPERATIONAL' - DNS changes will not proceed.
+    #    - if set to 'HALF_OPERATIONAL' - DNS changes will not proceed.
     #
     # Default is 'ALL_OPERATIONAL' (all SG DNS configs for same Scaling Groups must be considered 'operational').
     multiple_config_proceed_mode = optional(string, "ALL_OPERATIONAL")
@@ -61,6 +62,34 @@ variable "records" {
       # * cloudflare
       provider = optional(string, "route53")
 
+      # Describes how to handle DNS record values registration.
+      #
+      # MULTIVALUE:
+      #   Multiple records are created for the same record name.
+      # Example:
+      #   * domain.com resolves to multiple IP addresses, thus having multiple A records,
+      #     (or single A record with multiple IP addresses):
+      #     ;; subdomain.example.com A 12.82.13.83, 12.82.13.84, 12.82.14.80
+      #
+      # SINGLE_LATEST:
+      #   Single value resolve from latest Instance used as record value.
+      # Value is resolved to the most-recently-launched Instance in Scaling Group
+      # that is considered 'ready' and 'healthy'. Use-case example - blue/green deployments.
+      # Example:
+      #   * domain.com resolves to a single IP address, thus having a single A record with single value:
+      #     ;; subdomain.example.com A 12.82.13.83
+      mode = optional(string, "MULTIVALUE")
+
+      # Describes how system should resolve situation when there is no value to set for the DNS record.
+      # Typically, this might be the case when scaling down to 0 instances, and there is no value to set.
+      # Supported values:
+      # * 'KEEP' - when there is no value to set will keep the existing record(s) intact.
+      # * 'DELETE' - will delete the DNS record if there is no value to set it to.
+      # * 'FIXED:<value>' - will set the DNS record to the specified value if there is no value to set.
+      #    Note, that this value will be used as-is, without any interpolation. It's your responsibility
+      #    to ensure that the value is correct for the specified record type.
+      empty_mode = optional(string, "KEEP")
+
       # Value to use as the source for the DNS record. 'ip:v4:private' is default.
       # Supported values:
       # * 'ip:v4:public|private' - will use public/private IP v4 of the instance.
@@ -69,26 +98,11 @@ variable "records" {
       # * 'tag:[<case_comparison_type>]:<tag_name>' - where <tag_name> is the name of the tag to
       #     use as the source for the DNS record value. '<comparison_type>' - Specifies whether to
       #     perform case sensitive or insestitive tag key match. Use 'ci' for case insensitive match.
-      #     Use 'cs' or omit parameter for case sensitive match. Default is case sensitive.
+      #     Use 'cs' or omit parameter for case sensitive match. Default is case sensitive ('cs').
       # IMPORTANT:
       # * If you're using private IPs, resolver function must be on the same network as Instance.
       #   For AWS this means lambda being deployed to the same VPC as the ASG(s) it's runnign check against.
       value_source = optional(string, "ip:v4:private")
-
-      # Describes how to handle DNS record values.
-      #
-      # MULTIVALUE: Multiple records are created for the same record name.
-      # Example:
-      #   * domain.com resolves to multiple IP addresses, thus having multiple A records,
-      #     (or single A record with multiple IP addresses):
-      #     ;; subdomain.example.com A 12.82.13.83, 12.82.13.84, 12.82.14.80
-      #
-      # SINGLE: Single value for the DNS name.
-      # Value is resolved to the most-recent Instance in Scaling Group that matches readiness/health check.
-      # Example:
-      #   * domain.com resolves to a single IP address, thus having a single A record with single value:
-      #     ;; subdomain.example.com A 12.82.13.83
-      mode = optional(string, "MULTIVALUE")
 
       # ID of the 'hosted zone'.
       # For AWS - 'Hosted zone ID' of the domain. You can find this in Route53 console.
@@ -105,11 +119,14 @@ variable "records" {
       # Type of DNS record. Default is 'A'
       record_type = optional(string, "A")
 
-      # Priority of the DNS record. Default is 0
-      record_priority = optional(number, 0)
+      # Priority of the DNS record. Used in SRV only. Default is 0
+      srv_priority = optional(number, 0)
 
-      # Weight of the DNS record. Default is 0
-      record_weight = optional(number, 0)
+      # Weight of the DNS record. Used in SRV only. Default is 0
+      srv_weight = optional(number, 0)
+
+      # Port of the DNS record. Used in SRV only. Default is 0.
+      srv_port = optional(number, 0)
     })
 
     # ###

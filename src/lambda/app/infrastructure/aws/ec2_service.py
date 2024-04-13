@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Sequence
 
 import boto3
-
 from app.infrastructure.aws import boto_config
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger

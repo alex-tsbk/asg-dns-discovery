@@ -1,6 +1,6 @@
 import abc
 from concurrent.futures import Future
-from typing import Any, Callable, NoReturn, Iterable
+from typing import Any, Callable, Iterable, NoReturn
 
 
 class TaskSchedulerInterface(metaclass=abc.ABCMeta):

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, override
+from typing import Any, override, Self
 
 from app.utils.dataclass import DataclassBase
 
@@ -24,7 +24,7 @@ class ReadinessConfig(DataclassBase):
 
     @override
     @classmethod
-    def from_dict(cls, data: dict[str, Any]):
+    def from_dict(cls, data: dict[str, Any]) -> Self:
         """
         Converts dictionary to ReadinessConfig object
 
@@ -37,4 +37,4 @@ class ReadinessConfig(DataclassBase):
             "tag_value": "<tag_value>"
         }
         """
-        return ReadinessConfig(**data)
+        return cls(**data)

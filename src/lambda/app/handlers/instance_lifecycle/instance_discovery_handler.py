@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
+from app.domain.models.instance_model import InstanceModel
 from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.handlers.handler_base import HandlerBase
-from app.utils.logging import get_logger
 from app.handlers.handler_context import HandlerContext
 from app.utils.exceptions import BusinessException
-from app.domain.models.instance_model import InstanceModel
+from app.utils.logging import get_logger
 
 
 class InstanceDiscoveryHandler(HandlerBase[InstanceLifecycleContext]):

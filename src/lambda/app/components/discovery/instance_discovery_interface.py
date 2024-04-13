@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 from app.domain.models.instance_model import InstanceModel
+from app.domain.models.scaling_group_model import ScalingGroupModel
 
 
 class InstanceDiscoveryInterface(metaclass=ABCMeta):
@@ -19,13 +20,13 @@ class InstanceDiscoveryInterface(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def describe_scaling_groups(self, *scaling_groups_names: str) -> list[InstanceModel]:
+    def describe_scaling_groups(self, *scaling_groups_names: str) -> list[ScalingGroupModel]:
         """Get the instances in the scaling group.
 
         Args:
             *scaling_groups_names (str): The names of the scaling groups to describe.
 
         Returns:
-            list[InstanceModel]: Models describing the instances.
+            list[ScalingGroupModel]: Models describing scaling groups and related instances.
         """
         pass

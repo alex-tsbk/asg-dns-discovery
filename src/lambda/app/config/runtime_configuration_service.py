@@ -4,7 +4,7 @@ from typing import Any
 
 from app.components.persistence.repository_service_interface import RepositoryInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.config.models.scaling_group_dns_config import ScalingGroupConfiguration, ScalingGroupConfigurations
+from app.config.models.scaling_group_config import ScalingGroupConfiguration, ScalingGroupConfigurations
 from app.utils.exceptions import BusinessException
 
 
