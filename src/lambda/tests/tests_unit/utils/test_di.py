@@ -1,5 +1,5 @@
 import pytest
-from app.utils.di import DIContainer, Injectable, NamedInjectable
+from app.utils.di import DIContainer, DILifetimeScope, Injectable, NamedInjectable
 
 
 class Foo:
@@ -20,35 +20,35 @@ def di_container():
 
 
 def test_resolve_transient_instance(di_container: DIContainer):
-    di_container.register(Foo, Foo, lifetime="transient")
+    di_container.register(Foo, Foo, lifetime=DILifetimeScope.TRANSIENT)
     foo = di_container.resolve(Foo)
     assert isinstance(foo, Foo)
 
 
 def test_resolve_transient_instance_with_name(di_container: DIContainer):
-    di_container.register(Foo, Foo, lifetime="transient", name="foo1")
+    di_container.register(Foo, Foo, lifetime=DILifetimeScope.TRANSIENT, name="foo1")
     foo = di_container.resolve(Foo, name="foo1")
     assert isinstance(foo, Foo)
 
 
 def test_resolve_transient_instance_with_names(di_container: DIContainer):
-    di_container.register(Foo, Foo, lifetime="transient", name="foo1")
-    di_container.register(Foo, Foo, lifetime="transient", name="foo2")
+    di_container.register(Foo, Foo, lifetime=DILifetimeScope.TRANSIENT, name="foo1")
+    di_container.register(Foo, Foo, lifetime=DILifetimeScope.TRANSIENT, name="foo2")
     foo1 = di_container.resolve(Foo, name="foo1")
     foo2 = di_container.resolve(Foo, name="foo2")
     assert foo1 is not foo2
 
 
 def test_resolve_scoped_instance(di_container: DIContainer):
-    di_container.register(Foo, Foo, lifetime="scoped")
+    di_container.register(Foo, Foo, lifetime=DILifetimeScope.SCOPED)
     foo1 = di_container.resolve(Foo)
     foo2 = di_container.resolve(Foo)
     assert foo1 is foo2
 
 
 def test_resolve_with_dependency(di_container: DIContainer):
-    di_container.register(Foo, Foo, lifetime="scoped")
-    di_container.register(Bar, Bar, lifetime="transient")
+    di_container.register(Foo, Foo, lifetime=DILifetimeScope.SCOPED)
+    di_container.register(Bar, Bar, lifetime=DILifetimeScope.TRANSIENT)
     bar = di_container.resolve(Bar)
     assert isinstance(bar, Bar)
     assert isinstance(bar.foo, Foo)
@@ -91,9 +91,9 @@ def test_register_instance_with_same_name_allows_override_when_allow_override_is
 
 
 def test_register_raises_error_when_attempting_to_register_non_overridable_service_twice(di_container: DIContainer):
-    di_container.register(Foo, Foo, lifetime="scoped", overridable=False)
+    di_container.register(Foo, Foo, lifetime=DILifetimeScope.SCOPED, overridable=False)
     with pytest.raises(ValueError):
-        di_container.register(Foo, Foo, lifetime="scoped", overridable=False)
+        di_container.register(Foo, Foo, lifetime=DILifetimeScope.SCOPED, overridable=False)
 
 
 def test_resolve_should_be_able_to_resolve_itself(di_container: DIContainer):
@@ -116,16 +116,16 @@ class QuxNI:
 
 
 def test_resolve_explicit_injectable(di_container: DIContainer):
-    di_container.register(Foo, Baz, lifetime="scoped")
-    di_container.register(QuxI, QuxI, lifetime="transient")
+    di_container.register(Foo, Baz, lifetime=DILifetimeScope.SCOPED)
+    di_container.register(QuxI, QuxI, lifetime=DILifetimeScope.TRANSIENT)
     qux = di_container.resolve(QuxI)
     assert isinstance(qux.foo, Baz)
 
 
 def test_resolve_annotated_type_should_inject_correct_named_registered_instance(di_container: DIContainer):
-    di_container.register(Foo, Baz, lifetime="scoped")
-    di_container.register(Foo, Foo, lifetime="scoped", name="foo")
-    di_container.register(QuxNI, QuxNI, lifetime="transient")
+    di_container.register(Foo, Baz, lifetime=DILifetimeScope.SCOPED)
+    di_container.register(Foo, Foo, lifetime=DILifetimeScope.SCOPED, name="foo")
+    di_container.register(QuxNI, QuxNI, lifetime=DILifetimeScope.TRANSIENT)
     qux = di_container.resolve(QuxNI)
     assert isinstance(qux.foo, Foo)
 
@@ -151,7 +151,7 @@ class Grault(CorgeInterface):
 
 
 def test_resolve_interface_type_should_inject_correct_instance_when_decorated(di_container: DIContainer):
-    di_container.register(CorgeInterface, Corge, lifetime="scoped")
+    di_container.register(CorgeInterface, Corge, lifetime=DILifetimeScope.SCOPED)
     di_container.decorate(CorgeInterface, Grault)
     corge = di_container.resolve(CorgeInterface)
     assert corge.name() == "Corge->Grault"
@@ -161,13 +161,13 @@ def test_resolve_interface_type_should_raise_when_trying_to_decorated_named_regi
     di_container: DIContainer,
 ):
     di_container = DIContainer()
-    di_container.register(CorgeInterface, Corge, name="grault", lifetime="scoped")
+    di_container.register(CorgeInterface, Corge, name="grault", lifetime=DILifetimeScope.SCOPED)
     with pytest.raises(ValueError):
         di_container.decorate(CorgeInterface, Grault)
 
 
 def test_resolve_interface_type_should_inject_correct_instance_when_decorated_with_name(di_container: DIContainer):
-    di_container.register(CorgeInterface, Corge, name="corge", lifetime="scoped")
+    di_container.register(CorgeInterface, Corge, name="corge", lifetime=DILifetimeScope.SCOPED)
     di_container.decorate(CorgeInterface, Grault, name="corge")
     corge = di_container.resolve(CorgeInterface, name="corge")
     assert corge.name() == "Corge->Grault"
@@ -184,7 +184,7 @@ class Garply(GarplyInterface):
 def test_resolve_interface_type_should_raise_when_trying_to_decorate_registration_with_different_type(
     di_container: DIContainer,
 ):
-    di_container.register(CorgeInterface, Corge, lifetime="scoped")
+    di_container.register(CorgeInterface, Corge, lifetime=DILifetimeScope.SCOPED)
     with pytest.raises(ValueError):
         di_container.decorate(CorgeInterface, Garply)
 
@@ -196,6 +196,6 @@ class Waldo(GarplyInterface):
 def test_resolve_should_raise_when_trying_to_decorate_registration_and_not_accepting_implementation(
     di_container: DIContainer,
 ):
-    di_container.register(GarplyInterface, Garply, lifetime="scoped")
+    di_container.register(GarplyInterface, Garply, lifetime=DILifetimeScope.SCOPED)
     with pytest.raises(ValueError):
         di_container.decorate(GarplyInterface, Waldo)

@@ -45,7 +45,7 @@ class AwsDynamoDBRepository(RepositoryInterface):
         """Create item in DynamoDB table.
 
         Args:
-            key (str):  Not applicable to DynamoDB, but required for interface compatibility.
+            key (str):  In DynamoDB it is a 'resource_id' property in the table.
             item (dict): Item to be created in DynamoDB table.
 
         Returns:
@@ -57,7 +57,7 @@ class AwsDynamoDBRepository(RepositoryInterface):
         try:
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/table/put_item.html
             kwargs: Mapping[str, Any] = {
-                "Item": item,
+                "Item": {"resource_id": key, **item},
                 "ConditionExpression": "attribute_not_exists(resource_id)",
             }
             response = self.table.put_item(**kwargs)
@@ -72,12 +72,16 @@ class AwsDynamoDBRepository(RepositoryInterface):
         """Put item in DynamoDB table.
 
         Args:
-            key (str): Not applicable to DynamoDB, but required for interface compatibility.
+            key (str): In DynamoDB it is a 'resource_id' property in the table.
             item (dict): Item to be put in DynamoDB table.
         """
         try:
+            table_item = {
+                "resource_id": key,
+                **item,
+            }
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/table/put_item.html
-            response = self.table.put_item(Item=item)
+            response = self.table.put_item(Item=table_item)
             self.logger.debug(f"put_item response: {to_json(response)}")
             return response
         except ClientError as e:

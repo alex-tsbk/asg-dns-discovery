@@ -5,7 +5,7 @@ from app.utils.dataclass import DataclassBase
 
 
 @dataclass
-class InstanceMetadataModel(DataclassBase):
+class InstanceMetadata(DataclassBase):
     public_ip_v4: str = field(default="")
     private_ip_v4: str = field(default="")
     public_ip_v6: str = field(default="")
@@ -15,7 +15,7 @@ class InstanceMetadataModel(DataclassBase):
 
 
 @dataclass
-class InstanceTagModel(DataclassBase):
+class InstanceTag(DataclassBase):
     """Model containing information about the tag entry of the instance."""
 
     key: str
@@ -23,8 +23,8 @@ class InstanceTagModel(DataclassBase):
 
 
 @dataclass
-class InstanceModel(DataclassBase):
-    """Model containing information about instance."""
+class Instance(DataclassBase):
+    """Entity representing information about instance."""
 
     # Instance id
     instance_id: str
@@ -37,9 +37,9 @@ class InstanceModel(DataclassBase):
     # Instance launch timestamp (epoch)
     instance_launch_timestamp: int = field(default=0)
     # Instance metadata
-    metadata: InstanceMetadataModel = field(default_factory=InstanceMetadataModel)
+    metadata: InstanceMetadata = field(default_factory=InstanceMetadata)
     # Instance tags
-    tags: list[InstanceTagModel] = field(default_factory=list)
+    tags: list[InstanceTag] = field(default_factory=list)
 
     def get_tag_value(self, tag_name: str, case_sensitive: bool = True) -> str:
         """Get tag value by tag name.
@@ -52,7 +52,7 @@ class InstanceModel(DataclassBase):
             str: The value of the tag.
         """
 
-        def comparator(t: InstanceTagModel) -> bool:
+        def comparator(t: InstanceTag) -> bool:
             return t.key == tag_name if case_sensitive else strings.alike(t.key, tag_name)
 
         tag = next(filter(comparator, self.tags), None)

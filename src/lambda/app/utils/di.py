@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from inspect import signature
 from typing import Annotated, Any, Hashable, Type
 
@@ -44,9 +45,22 @@ class NamedInjectable:
         self.name = name
 
 
-type _DI_SERVICE_KEY = tuple[Annotated[Type[Any], "Interface Type"], Annotated[str, "Lifetime Scope"]]
-type _DI_SERVICE_IMPL = tuple[Annotated[Type[Any], "Implementation Type"], Annotated[str, "Implementation Name"]]
-type _DI_INSTANCE = tuple[Annotated[Any, "Implementation Instance"], Annotated[str, "Instance Name"]]
+class DILifetimeScope(Enum):
+    """Lifetime scopes for dependency injection container."""
+
+    TRANSIENT = "transient"
+    SCOPED = "scoped"
+
+
+# Lifetime Scopes names for internal use only
+_LTS_TRANSIENT = "transient"
+_LTS_SCOPED = "scoped"
+_LTS_INSTANCE = "instance"
+
+# Types to ensure compatibility
+type _DI_SERVICE_KEY = tuple[Annotated[Type[Any], "Interface Type"], Annotated[str, "Registration Name"]]
+type _DI_SERVICE_IMPL = tuple[Annotated[Type[Any], "Implementation Type"], Annotated[str, "Lifetime Scope"]]
+type _DI_INSTANCE = tuple[Annotated[Any, "Implementation Instance"], Annotated[str, "Lifetime Scope: instance"]]
 
 
 class DIContainer:
@@ -89,7 +103,7 @@ class DIContainer:
         interface: Type[Any],
         implementation: Type[Any],
         name: str = "",
-        lifetime: str = "transient",
+        lifetime: DILifetimeScope = DILifetimeScope.TRANSIENT,
         overridable: bool = True,
     ):
         """Registers a an interface with an implementation in the container.
@@ -115,7 +129,7 @@ class DIContainer:
         if not overridable:
             self._non_overridable_services[key] = True
         # Register service
-        self._services[key] = (implementation, lifetime)
+        self._services[key] = (implementation, lifetime.value)
 
     def register_instance(self, instance: Any, name: str = "", allow_override: bool = False):
         """Registers an instance in the container.
@@ -131,9 +145,9 @@ class DIContainer:
         key: _DI_SERVICE_KEY = (type(instance), name)
         if key in self._instances and not allow_override:
             raise ValueError(f"Service {key} is already registered. Please set allow_override to True to override.")
-        self._instances[key] = (instance, "instance")
+        self._instances[key] = (instance, _LTS_INSTANCE)
         # Register in services container as well, to prevent resolving by type
-        self._services[key] = (type(instance), "instance")
+        self._services[key] = (type(instance), _LTS_INSTANCE)
 
     def decorate(self, interface: Type[Any], implementation: Type[Any], name: str = ""):
         """Decorates an existing service with a new implementation.
@@ -184,10 +198,10 @@ class DIContainer:
             raise ValueError(f"Service {interface.__name__} not registered.")
         implementation, lifetime = self._services[key]
 
-        if lifetime == "instance":
+        if lifetime == _LTS_INSTANCE:
             return self._instances[key][0]
 
-        if lifetime == "scoped":
+        if lifetime == _LTS_SCOPED:
             if key in self._scoped_instances:
                 return self._scoped_instances[key]
             instance = self._create_instance(implementation)
@@ -195,7 +209,7 @@ class DIContainer:
             self._scoped_instances[key] = instance
             return instance
 
-        if lifetime == "transient":
+        if lifetime == _LTS_TRANSIENT:
             instance = self._create_instance(implementation)
             instance = self._build_decorated(interface, name, instance)
             return instance

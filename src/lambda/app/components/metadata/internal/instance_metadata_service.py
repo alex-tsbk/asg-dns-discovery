@@ -2,7 +2,7 @@ from app.components.metadata.instance_metadata_interface import InstanceMetadata
 from app.components.metadata.instance_metadata_resolver_interface import InstanceMetadataResolverInterface
 from app.components.metadata.models.metadata_result_model import MetadataResultModel
 from app.components.metadata.models.metadata_value_source_model import MetadataValueSourceModel
-from app.domain.models.instance_model import InstanceModel
+from app.entities.instance_entity import Instance
 from app.utils.di import DIContainer
 from app.utils.exceptions import BusinessException
 
@@ -13,11 +13,11 @@ class InstanceMetadataService(InstanceMetadataInterface):
     def __init__(self, di_container: DIContainer):
         self.di_container = di_container
 
-    def resolve_value(self, model: InstanceModel, value_source: str) -> MetadataResultModel:
+    def resolve_value(self, model: Instance, value_source: str) -> MetadataResultModel:
         """Resolves the value(s) from instance(s) metadata.
 
         Args:
-            model (InstanceModel): The instance model.
+            model (Instance): The instance model.
             value_source (str): The source of the metadata value.
 
         Returns:

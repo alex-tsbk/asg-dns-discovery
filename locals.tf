@@ -10,7 +10,9 @@ locals {
   # Distinct auto scaling group names
   asg_names = toset([for record in var.records : record.asg_name])
   # DynamoDB key id for service discovery configuration
-  dynamo_db_config_item_key_id = "service-discovery-config"
+  dynamo_db_iac_config_item_key_id = "service-discovery-iac-config"
+  # DynamoDB key id for externally-managed configuration
+  dynamo_db_external_config_item_key_id = "service-discovery-external-config"
   # Resource prefix
   resource_prefix = "${var.environment}-${var.resource_suffix}"
   # Resource tags

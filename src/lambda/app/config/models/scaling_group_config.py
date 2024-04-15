@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional, override, Self
+from typing import Any, Optional, Self, override
 
 from app.config.models.dns_record_config import DnsRecordConfig
 from app.config.models.health_check_config import HealthCheckConfig

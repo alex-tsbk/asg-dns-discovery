@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, override, Self
+from typing import Any, Self, override
 
 from app.utils.dataclass import DataclassBase
 

@@ -6,7 +6,7 @@ from app.components.readiness.models.readiness_result_model import ReadinessResu
 from app.config.models.health_check_config import HealthCheckConfig
 from app.config.models.readiness_config import ReadinessConfig
 from app.config.models.scaling_group_config import ScalingGroupConfiguration
-from app.domain.models.instance_model import InstanceModel
+from app.entities.instance_entity import Instance
 from app.handlers.handler_context import HandlerContext
 
 
@@ -20,7 +20,7 @@ class InstanceLifecycleContext(HandlerContext):
     readiness_config: ReadinessConfig | None
     health_check_config: HealthCheckConfig | None
     # state
-    instance_model: InstanceModel | None = field(default=None)
+    instance_model: Instance | None = field(default=None)
     # results
     readiness_result: Optional[ReadinessResultModel] = field(default=None)
     health_check_result: Optional[HealthCheckResultModel] = field(default=None)

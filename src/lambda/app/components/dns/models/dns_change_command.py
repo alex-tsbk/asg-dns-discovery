@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
-from enum import Enum
 from datetime import datetime
+from enum import Enum
 
 from app.config.models.dns_record_config import DnsRecordConfig
 
@@ -8,11 +8,11 @@ from app.config.models.dns_record_config import DnsRecordConfig
 class DnsChangeCommandAction(Enum):
     """Enumeration of DNS change command actions."""
 
-    # Instructs to append values to the DNS record.
+    # Signals to append values to the DNS record.
     APPEND = "APPEND"
-    # Instructs to remove values from the DNS record.
+    # Signals to remove values from the DNS record.
     REMOVE = "REMOVE"
-    # Instructs to replace values in the DNS record.
+    # Signals to replace values in the DNS record.
     REPLACE = "REPLACE"
 
 
@@ -25,6 +25,9 @@ class DnsChangeCommandValue:
     # Instance identifier
     instance_id: str
 
+    def __str__(self) -> str:
+        return f"${self.__class__.__name__}: {self.dns_value} ({self.instance_id}/{self.launch_time.isoformat()})"
+
 
 @dataclass(frozen=True)
 class DnsChangeCommand:
@@ -36,3 +39,6 @@ class DnsChangeCommand:
     dns_config: DnsRecordConfig
     # List of DNS record values to append, remove, or replace.
     values: list[DnsChangeCommandValue] = field(default_factory=list)
+
+    def __str__(self) -> str:
+        return f"${self.__class__.__name__}: {self.action} {self.dns_config.record_name} {self.dns_config.record_type} {', '.join([str(v) for v in self.values])} {self.dns_config.to_dict()} "

@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
-from app.domain.models.instance_model import InstanceMetadataModel, InstanceModel, InstanceTagModel
-from app.domain.models.scaling_group_model import ScalingGroupModel
+from app.entities.instance_entity import InstanceMetadata, Instance, InstanceTag
+from app.entities.scaling_group_entity import ScalingGroup
 from app.infrastructure.aws.ec2_asg_service import AwsEc2AutoScalingService
 from app.infrastructure.aws.ec2_service import AwsEc2Service
 from app.utils.logging import get_logger
@@ -22,17 +22,17 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
         self.aws_ec2_service = aws_ec2_service
         self.aws_asg_service = aws_asg_service
 
-    def describe_instances(self, *instances_ids: str) -> list[InstanceModel]:
+    def describe_instances(self, *instances_ids: str) -> list[Instance]:
         """Describe the instances with the given IDs.
 
         Args:
             *instances_ids (str): The IDs of the instances to describe.
 
         Returns:
-            list[InstanceModel]: Models describing the instances.
+            list[Instance]: Models describing the instances.
         """
         # We'll store the instances models in a dictionary for fast lookup
-        instances_models: dict[str, InstanceModel] = {}
+        instances_models: dict[str, Instance] = {}
         # Pencil down the scaling group names to describe them later
         auto_scaling_group_names: set[str] = set()
         # Collect EC2 instances information
@@ -62,24 +62,24 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
         result = list(instances_models.values())
         return result
 
-    def describe_scaling_groups(self, *scaling_groups_names: str) -> list[ScalingGroupModel]:
+    def describe_scaling_groups(self, *scaling_groups_names: str) -> list[ScalingGroup]:
         """Get the instances in the scaling group.
 
         Args:
             *scaling_groups_names (str): The names of the scaling groups to describe.
 
         Returns:
-            list[ScalingGroupModel]: Models describing the instances.
+            list[ScalingGroup]: Models describing the instances.
         """
         # We'll store the instances models in a dictionary for fast lookup
-        instances_models: dict[str, InstanceModel] = {}
+        instances_models: dict[str, Instance] = {}
         # Collect Auto Scaling Group instances information
         scaling_groups = self.aws_asg_service.describe_instances(
             auto_scaling_group_names=list(scaling_groups_names),
         )
         for scaling_group_name, scaling_group_instances in scaling_groups.items():
             for aws_asg_instance in scaling_group_instances:
-                instance_model = InstanceModel(
+                instance_model = Instance(
                     instance_id=aws_asg_instance["InstanceId"],
                     scaling_group_name=scaling_group_name,
                     lifecycle_state=aws_asg_instance["LifecycleState"],
@@ -100,28 +100,28 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
             self._fill_instance_tags(instance_model, aws_instance)
 
         # Build result
-        result: dict[str, ScalingGroupModel] = {}
+        result: dict[str, ScalingGroup] = {}
         for instance in instances_models.values():
             if instance.scaling_group_name not in result:
-                result[instance.scaling_group_name] = ScalingGroupModel(scaling_group_name=instance.scaling_group_name)
+                result[instance.scaling_group_name] = ScalingGroup(scaling_group_name=instance.scaling_group_name)
             result[instance.scaling_group_name].instances.append(instance)
         return list(result.values())
 
     @classmethod
-    def _build_instance_model(cls, aws_instance_info: InstanceTypeDef) -> InstanceModel:
+    def _build_instance_model(cls, aws_instance_info: InstanceTypeDef) -> Instance:
         """Builds an Instance Model from AWS Instance information.
 
         Args:
             aws_instance_info (InstanceTypeDef): AWS instance information.
 
         Returns:
-            InstanceModel: Model containing the instance information.
+            Instance: Model containing the instance information.
         """
         instance_id = aws_instance_info.get("InstanceId", "")
         auto_scaling_group_name = next(
             (tag["Value"] for tag in aws_instance_info["Tags"] if tag["Key"] == "aws:autoscaling:groupName"), ""
         )
-        instance = InstanceModel(
+        instance = Instance(
             instance_id=instance_id,
             scaling_group_name=auto_scaling_group_name,
             instance_state=aws_instance_info["State"]["Name"],
@@ -132,14 +132,14 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
         return instance
 
     @staticmethod
-    def _fill_instance_metadata(instance: InstanceModel, aws_instance_info: InstanceTypeDef):
+    def _fill_instance_metadata(instance: Instance, aws_instance_info: InstanceTypeDef):
         """Fetches instance metadata from AWS instance information and updates the instance model.
 
         Args:
-            instance (InstanceModel): Instance model to update.
+            instance (Instance): Instance model to update.
             aws_instance_info (InstanceTypeDef): AWS instance information.
         """
-        instance.metadata = InstanceMetadataModel(
+        instance.metadata = InstanceMetadata(
             public_ip_v4=aws_instance_info.get("PublicIpAddress", ""),
             private_ip_v4=aws_instance_info.get("PrivateIpAddress", ""),
             public_dns=aws_instance_info.get("PublicDnsName", ""),
@@ -152,11 +152,11 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
         )
 
     @staticmethod
-    def _fill_instance_tags(instance: InstanceModel, aws_instance_info: InstanceTypeDef):
+    def _fill_instance_tags(instance: Instance, aws_instance_info: InstanceTypeDef):
         """Fetches instance tags from AWS instance information and updates the instance model.
 
         Args:
-            instance (InstanceModel): Instance model to update.
+            instance (Instance): Instance model to update.
             aws_instance_info (InstanceTypeDef): AWS instance information.
         """
-        instance.tags = [InstanceTagModel(key=tag["Key"], value=tag["Value"]) for tag in aws_instance_info["Tags"]]
+        instance.tags = [InstanceTag(key=tag["Key"], value=tag["Value"]) for tag in aws_instance_info["Tags"]]

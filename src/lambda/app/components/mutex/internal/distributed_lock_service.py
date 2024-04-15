@@ -47,7 +47,7 @@ class DistributedLockService(DistributedLockInterface):
         resource_id = lock_key  # Explicit naming for context clarity
         self.logger.debug(f"Acquiring lock for resource: {resource_id}")
         try:
-            item = {"resource_id": resource_id, "timestamp": int(time.time())}
+            item = {"timestamp": int(time.time())}
             response = self.repository.create(resource_id, item)
             self.logger.debug(f"acquire_lock response: {to_json(response)}")
             return bool(response)

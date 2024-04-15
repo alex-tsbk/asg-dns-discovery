@@ -1,6 +1,6 @@
 from typing import Any
 
-from app.config.runtime_context import RUNTIME_CONTEXT
+from app.runtime_context import RUNTIME_CONTEXT
 from app.utils.singleton import Singleton
 
 from .lifecycle_event_model import LifecycleEventModel

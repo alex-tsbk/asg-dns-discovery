@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
-from app.domain.models.instance_model import InstanceModel
+from app.entities.instance_entity import Instance
 from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.handlers.handler_base import HandlerBase
 from app.handlers.handler_context import HandlerContext
@@ -25,7 +25,7 @@ class InstanceDiscoveryHandler(HandlerBase[InstanceLifecycleContext]):
         """
 
         # Perform instance discovery
-        instance_models: list[InstanceModel] = self.instance_discovery_service.describe_instances(context.instance_id)
+        instance_models: list[Instance] = self.instance_discovery_service.describe_instances(context.instance_id)
         if not instance_models:
             raise BusinessException(f"Instance {context.instance_id} not found")
 

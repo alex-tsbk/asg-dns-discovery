@@ -17,9 +17,10 @@ locals {
     instance_readiness_tag_key          = var.instance_readiness_default.tag_key
     instance_readiness_tag_value        = var.instance_readiness_default.tag_value
     # Configuration for database. Used for distributed locking and retrieval of configuration items.
-    db_provider           = "dynamodb"
-    db_table_name         = aws_dynamodb_table.dns_discovery_state_lock_table.name
-    db_config_item_key_id = local.dynamo_db_config_item_key_id
+    db_provider                    = "dynamodb"
+    db_table_name                  = aws_dynamodb_table.dns_discovery_state_lock_table.name
+    db_config_iac_item_key_id      = local.dynamo_db_iac_config_item_key_id
+    db_config_external_item_key_id = local.dynamo_db_external_config_item_key_id
     # Reconciliation
     reconciliation_what_if                    = var.reconciliation.what_if
     reconciliation_max_concurrency            = var.reconciliation.max_concurrency

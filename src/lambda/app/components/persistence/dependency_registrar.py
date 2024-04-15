@@ -1,6 +1,6 @@
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.config.runtime_context import RUNTIME_CONTEXT
-from app.utils.di import DIContainer
+from app.runtime_context import RUNTIME_CONTEXT
+from app.utils.di import DIContainer, DILifetimeScope
 
 from .repository_service_interface import RepositoryInterface
 
@@ -18,4 +18,4 @@ def register_services(di_container: DIContainer, env_config_service: Environment
         if db_provider == "dynamodb":
             from .internal.aws.aws_dynamodb_repository import AwsDynamoDBRepository
 
-            di_container.register(RepositoryInterface, AwsDynamoDBRepository, lifetime="scoped")
+            di_container.register(RepositoryInterface, AwsDynamoDBRepository, lifetime=DILifetimeScope.SCOPED)

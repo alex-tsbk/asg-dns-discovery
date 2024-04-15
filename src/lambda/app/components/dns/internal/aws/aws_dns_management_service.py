@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
+from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
 from app.components.dns.dns_management_interface import DnsManagementInterface
 from app.components.dns.internal.aws.aws_dns_change_request_model import AwsDnsChangeRequestModel
+from app.components.dns.models.dns_change_command import DnsChangeCommand, DnsChangeCommandAction
 from app.components.dns.models.dns_change_request_model import (
     IGNORED_DNS_CHANGE_REQUEST,
     DnsChangeRequestAction,
@@ -9,13 +13,11 @@ from app.components.dns.models.dns_change_request_model import (
     DnsRecordType,
 )
 from app.components.dns.models.dns_change_response_model import DnsChangeResponseModel
-from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
-from app.config.models.dns_record_config import DnsRecordEmptyValueMode, DnsRecordMappingMode
+from app.components.persistence.repository_service_interface import RepositoryInterface
+from app.config.models.dns_record_config import DnsRecordConfig, DnsRecordEmptyValueMode, DnsRecordMappingMode
 from app.infrastructure.aws.route53_service import Route53Service
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
-
-from app.components.dns.models.dns_change_command import DnsChangeCommand, DnsChangeCommandAction
 
 if TYPE_CHECKING:
     from mypy_boto3_route53.type_defs import ResourceRecordSetTypeDef
@@ -28,10 +30,12 @@ class AwsDnsManagementService(DnsManagementInterface):
         self,
         route_53_service: Route53Service,
         instance_discovery_service: InstanceDiscoveryInterface,
+        repository: RepositoryInterface,
     ) -> None:
         self.logger = get_logger()
         self.route_53_service = route_53_service
         self.instance_discovery_service = instance_discovery_service
+        self.repository = repository
 
     def generate_change_request(self, dns_change_command: DnsChangeCommand) -> DnsChangeRequestModel:
         """Generate a change request to update the DNS record based on the command.
@@ -50,9 +54,13 @@ class AwsDnsManagementService(DnsManagementInterface):
         record_name = self._normalize_record_name(record_name, hosted_zone_id)
         record = self.route_53_service.read_record(hosted_zone_id, record_name, record_type.value)
         if not record:
+            self.logger.warning(f"Record not found: {record_name} ({record_type}) in zone {hosted_zone_id}")
             return IGNORED_DNS_CHANGE_REQUEST
 
         if dns_change_command.action == DnsChangeCommandAction.APPEND:
+            # It might be counter-intuitive to why not just use 'replace'/'reconciliation' here,
+            # but in the scenario where Instance is being replaced with a new one, the old one
+            # will not pass readiness check, therefore failing the entire change request.
             return self._handle_launching(dns_change_command, record)
 
         if dns_change_command.action == DnsChangeCommandAction.REMOVE:
@@ -100,59 +108,6 @@ class AwsDnsManagementService(DnsManagementInterface):
             record_name = f"{record_name}.{hosted_zone_name}"
         return record_name
 
-    def _handle_draining(
-        self, dns_change_command: DnsChangeCommand, record: ResourceRecordSetTypeDef
-    ) -> DnsChangeRequestModel:
-        """
-        Handle the draining lifecycle event.
-
-        Args:
-            dns_change_command [DnsChangeCommand]: The DNS change command.
-            record [dict]: The Route53 record.
-
-        Returns:
-            DnsChangeRequestModel: The change request model.
-        """
-        if not record:
-            return IGNORED_DNS_CHANGE_REQUEST
-
-        # Extract the current values from the record
-        current_record_values: list[str] = self._extract_values_from_route53_record(record)
-        removable_dns_record_values: list[str] = self._extract_dns_record_values(dns_change_command)
-        if not current_record_values:
-            return IGNORED_DNS_CHANGE_REQUEST
-
-        # Compute values that should be left in the record
-        desired_dns_record_values = [
-            value for value in current_record_values if value not in removable_dns_record_values
-        ]
-        # Check if any values are left
-        has_values = bool(desired_dns_record_values)
-        # Create a base change request model response
-        dns_change_request_model_response = AwsDnsChangeRequestModel.from_dns_record_config(
-            dns_change_command.dns_config
-        )
-        # Decide how to handle thi
-        if not has_values:
-            # Basically, do nothing if no values are left
-            if dns_change_command.dns_config.empty_mode == DnsRecordEmptyValueMode.KEEP:
-                return IGNORED_DNS_CHANGE_REQUEST
-            # Delete the record if no values are left
-            if dns_change_command.dns_config.empty_mode == DnsRecordEmptyValueMode.DELETE:
-                dns_change_request_model_response.action = DnsChangeRequestAction.DELETE
-                dns_change_request_model_response.record_values = current_record_values
-                return dns_change_request_model_response
-            # Use a fixed value if no values are left
-            if dns_change_command.dns_config.empty_mode == DnsRecordEmptyValueMode.FIXED:
-                dns_change_request_model_response.action = DnsChangeRequestAction.UPDATE
-                dns_change_request_model_response.record_values = [dns_change_command.dns_config.empty_mode_value]
-                return dns_change_request_model_response
-
-        # If any values are left, update the record
-        dns_change_request_model_response.action = DnsChangeRequestAction.UPDATE
-        dns_change_request_model_response.record_values = desired_dns_record_values
-        return dns_change_request_model_response
-
     def _handle_launching(
         self, dns_change_command: DnsChangeCommand, record: ResourceRecordSetTypeDef
     ) -> DnsChangeRequestModel:
@@ -174,9 +129,12 @@ class AwsDnsManagementService(DnsManagementInterface):
         current_dns_record_values: list[str] = self._extract_values_from_route53_record(record)
         additional_dns_record_values: list[str] = self._extract_dns_record_values(dns_change_command)
 
-        # If resolved_values a subset of current_record_values, ignore the change
+        # If resolved_values a subset of current_dns_record_values, ignore the change
         # (or both sets are empty, which is also an edge case)
         if set(additional_dns_record_values).issubset(set(current_dns_record_values)):
+            self.logger.debug(
+                f"Resolved values are a subset of current values. Ignoring the change: {dns_change_command}"
+            )
             return IGNORED_DNS_CHANGE_REQUEST
 
         # Augment current record values with resolved values
@@ -191,20 +149,49 @@ class AwsDnsManagementService(DnsManagementInterface):
         if not desired_dns_record_values:
             return IGNORED_DNS_CHANGE_REQUEST
 
-        # Create a change request
+        # Determine the action to take
         action = DnsChangeRequestAction.CREATE if not record else DnsChangeRequestAction.UPDATE
+        # Create a change request
+        response = AwsDnsChangeRequestModel.from_dns_record_config(dns_config)
+        response.action = action
+        response.record_values = desired_dns_record_values
 
-        return AwsDnsChangeRequestModel(
-            action=action,
-            hosted_zone_id=dns_config.dns_zone_id,
-            record_name=dns_config.record_name,
-            record_type=DnsRecordType(dns_config.record_type),
-            record_ttl=dns_config.record_ttl,
-            record_weight=dns_config.srv_weight,
-            record_priority=dns_config.srv_priority,
-            record_port=dns_config.srv_port,
-            record_values=desired_dns_record_values,
-        )
+        return response
+
+    def _handle_draining(
+        self, dns_change_command: DnsChangeCommand, record: ResourceRecordSetTypeDef
+    ) -> DnsChangeRequestModel:
+        """
+        Handle the draining lifecycle event.
+
+        Args:
+            dns_change_command [DnsChangeCommand]: The DNS change command.
+            record [dict]: The Route53 record.
+
+        Returns:
+            DnsChangeRequestModel: The change request model.
+        """
+        # Extract the current values from the record
+        current_dns_record_values: list[str] = self._extract_values_from_route53_record(record)
+        removable_dns_record_values: list[str] = self._extract_dns_record_values(dns_change_command)
+        if not current_dns_record_values:
+            self.logger.error(f"No current DNS record values found. Ignoring the change: ${dns_change_command}")
+            return IGNORED_DNS_CHANGE_REQUEST
+
+        # Compute values that should be left in the record
+        desired_dns_record_values = [
+            value for value in current_dns_record_values if value not in removable_dns_record_values
+        ]
+
+        # Decide how to handle the case when the scaling group is empty
+        if not desired_dns_record_values:
+            return self._handle_empty_scaling_group(dns_change_command.dns_config, current_dns_record_values)
+
+        # If any values are left, update the record
+        response = AwsDnsChangeRequestModel.from_dns_record_config(dns_change_command.dns_config)
+        response.action = DnsChangeRequestAction.UPDATE
+        response.record_values = desired_dns_record_values
+        return response
 
     def _handle_reconciliation(
         self, dns_change_command: DnsChangeCommand, record: ResourceRecordSetTypeDef
@@ -231,9 +218,7 @@ class AwsDnsManagementService(DnsManagementInterface):
         action = DnsChangeRequestAction.UPDATE if record else DnsChangeRequestAction.CREATE
 
         if not desired_dns_record_values:
-            # Basically, we can't have DNS record without values.
-            # TODO: Revisit this edge case
-            return IGNORED_DNS_CHANGE_REQUEST
+            return self._handle_empty_scaling_group(dns_change_command.dns_config, current_dns_record_values)
 
         return AwsDnsChangeRequestModel(
             action=action,
@@ -247,7 +232,60 @@ class AwsDnsManagementService(DnsManagementInterface):
             record_values=desired_dns_record_values,
         )
 
-    def _extract_values_from_route53_record(self, record: ResourceRecordSetTypeDef) -> list[str]:
+    def _handle_empty_scaling_group(
+        self, dns_config: DnsRecordConfig, current_dns_record_values: list[str]
+    ) -> DnsChangeRequestModel:
+        """Handle the case when the scaling group is empty.
+
+        Args:
+            dns_config (DnsRecordConfig): DNS record configuration.
+            current_dns_record_values (list[str]): Current DNS record values.
+
+        Returns:
+            DnsChangeRequestModel: The change request model to process the empty scaling group.
+        """
+        model = AwsDnsChangeRequestModel.from_dns_record_config(dns_config)
+        # Basically, do nothing if no values are left
+        if dns_config.empty_mode == DnsRecordEmptyValueMode.KEEP:
+            # Obtain UID
+            dns_config_uid = dns_config.uid()
+            # Pencil down the fact that the scaling group is empty, so value is removed from the record
+            # on the next reconciliation cycle / when new instance is launched
+            dns_garbage_values = {"dns_garbage_values": current_dns_record_values}
+            create_response = self.repository.create(dns_config_uid, dns_garbage_values)
+            if not create_response:
+                # Well, this is tricky.. because something might've updated the record in the meantime,
+                # which was not current application.
+                recorded_dns_config = self.repository.get(dns_config_uid)
+                if not recorded_dns_config:  # This should never happen, unless there's a bug in the code
+                    return IGNORED_DNS_CHANGE_REQUEST
+                # Get the recorded DNS garbage values in repository
+                recorded_dns_garbage_values = recorded_dns_config.get("dns_garbage_values", [])
+                # If the recorded values do not match the current values, override the change
+                if (recorded_values := set(sorted(recorded_dns_garbage_values))) != (
+                    current_values := set(sorted(current_dns_record_values))
+                ):
+                    self.logger.debug(
+                        f"Recorded DNS record values do not match the current values: {recorded_values} != {current_values}. Overriding the change."
+                    )
+                    self.repository.put(dns_config_uid, {"dns_garbage_values": dns_garbage_values})
+
+            return IGNORED_DNS_CHANGE_REQUEST
+
+        # Delete the record if no values are left
+        if dns_config.empty_mode == DnsRecordEmptyValueMode.DELETE:
+            model.action = DnsChangeRequestAction.DELETE
+            model.record_values = current_dns_record_values
+
+        # Use a fixed value if no values are left
+        if dns_config.empty_mode == DnsRecordEmptyValueMode.FIXED:
+            model.action = DnsChangeRequestAction.UPDATE
+            model.record_values = [dns_config.empty_mode_value]
+
+        return model
+
+    @staticmethod
+    def _extract_values_from_route53_record(record: ResourceRecordSetTypeDef) -> list[str]:
         """Extract values from Route53 record DNS record.
 
         Returns:
@@ -260,26 +298,26 @@ class AwsDnsManagementService(DnsManagementInterface):
 
     @staticmethod
     def _extract_dns_record_values(dns_change_command: DnsChangeCommand) -> list[str]:
-        """Extracts the desired DNS record values from the DNS change command.
+        """Extracts the DNS record values from the DNS change command.
 
         Args:
             dns_change_command (DnsChangeCommand): The DNS change command.
 
         Returns:
-            list[str]: The desired DNS record values sorted in ascending order.
+            list[str]: The DNS record values sorted in ascending order.
         """
         dns_config = dns_change_command.dns_config
-        desired_record_values: list[str] = []
+        record_values: list[str] = []
         if dns_config.mode == DnsRecordMappingMode.MULTIVALUE:
-            desired_record_values = sorted([value_item.dns_value for value_item in dns_change_command.values])
+            record_values = sorted([value_item.dns_value for value_item in dns_change_command.values])
 
         if dns_config.mode == DnsRecordMappingMode.SINGLE_LATEST:
             # Get the most recent operational instance
-            most_recent_operational_instance = sorted(
+            most_recent_operational_instances = sorted(
                 dns_change_command.values,
                 key=lambda x: x.launch_time,
                 reverse=True,
-            )[0]
-            desired_record_values = [most_recent_operational_instance.dns_value]
+            )
+            record_values = [most_recent_operational_instances[0].dns_value]
 
-        return desired_record_values
+        return record_values

@@ -1,13 +1,13 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-	"name": "Python 3",
+	"name": "Python 3.12",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
 	"features": {
 		"ghcr.io/devcontainers-contrib/features/poetry:2": {},
-		"ghcr.io/devcontainers-contrib/features/terraform-asdf:2": {},
-		"ghcr.io/devcontainers-contrib/features/black:2": {}
+		"ghcr.io/devcontainers-contrib/features/black:2": {},
+		"ghcr.io/devcontainers/features/terraform:1": {}
 	},
 	"customizations": {
 		"vscode": {
@@ -15,15 +15,15 @@
 				"python.pythonPath": "/usr/local/bin/python3"
 			},
 			"extensions": [
-				"ms-python.black-formatter",
-				"njpwerner.autodocstring",
 				"hashicorp.terraform",
-				"oderwat.indent-rainbow",
-				"ms-vscode.makefile-tools",
-				"kevinrose.vsc-python-indent",
-				"ms-python.flake8",
 				"streetsidesoftware.code-spell-checker",
-				"ms-python.isort"
+				"ms-python.isort",
+				"ms-python.black-formatter",
+				"ms-python.flake8",
+				"ms-vscode.makefile-tools",
+				"njpwerner.autodocstring",
+				"oderwat.indent-rainbow",
+				"kevinrose.vsc-python-indent"
 			]
 		}
 	},
@@ -31,11 +31,6 @@
 		"PYTHON_MAX_LINE_LENGTH": "120",
 		"POETRY_VIRTUALENVS_IN_PROJECT": "true"
 	},
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-	"postStartCommand": "make setup"
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	"postStartCommand": "make setup",
+	"remoteUser": "root"
 }

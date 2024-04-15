@@ -43,6 +43,7 @@ def _instantiate_dataclass(cls: Any, data: dict[Any, Any]):
         elif (
             hasattr(field_type, "__origin__")
             and field_type.__origin__ is list
+            and len(get_args(field_type)) > 0
             and is_dataclass(get_args(field_type)[0])
         ):
             inferred_type = get_args(field_type)[0]

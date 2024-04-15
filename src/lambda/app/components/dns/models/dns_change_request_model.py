@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Mapping, Self
 
-from app.utils.dataclass import DataclassBase
 from app.config.models.dns_record_config import DnsRecordConfig
+from app.utils.dataclass import DataclassBase
 
 
 class DnsRecordType(Enum):

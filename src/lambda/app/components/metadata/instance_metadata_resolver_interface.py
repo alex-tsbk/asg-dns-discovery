@@ -2,18 +2,18 @@ from abc import ABCMeta, abstractmethod
 
 from app.components.metadata.models.metadata_result_model import MetadataResultModel
 from app.components.metadata.models.metadata_value_source_model import MetadataValueSourceModel
-from app.domain.models.instance_model import InstanceModel
+from app.entities.instance_entity import Instance
 
 
 class InstanceMetadataResolverInterface(metaclass=ABCMeta):
     """Interface for resolving value from instance metadata."""
 
     @abstractmethod
-    def resolve(self, instance: InstanceModel, value_source: MetadataValueSourceModel) -> MetadataResultModel:
+    def resolve(self, instance: Instance, value_source: MetadataValueSourceModel) -> MetadataResultModel:
         """Resolves values from source metadata.
 
         Args:
-            instance (InstanceModel): The instance model.
+            instance (Instance): The instance model.
             value_source (MetadataValueSourceModel): The value source model.
 
         Returns:

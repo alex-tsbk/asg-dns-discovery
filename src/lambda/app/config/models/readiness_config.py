@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, override, Self
+from typing import Any, Self, override
 
 from app.utils.dataclass import DataclassBase
 

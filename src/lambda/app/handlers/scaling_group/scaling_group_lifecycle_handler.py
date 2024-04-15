@@ -7,7 +7,7 @@ from app.components.lifecycle.models.lifecycle_event_model_factory import Lifecy
 from app.components.mutex.distributed_lock_interface import DistributedLockInterface
 from app.components.readiness.instance_readiness_interface import InstanceReadinessInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.config.runtime_configuration_service import RuntimeConfigurationService
+from app.config.sg_configuration_service import ScalingGroupConfigurationsService
 from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.handlers.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.handlers.handler_base import HandlerBase
@@ -22,7 +22,7 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
     def __init__(
         self,
         env_configuration_service: EnvironmentConfigurationService,
-        runtime_configuration_service: RuntimeConfigurationService,
+        sg_configuration_service: ScalingGroupConfigurationsService,
         lifecycle_event_model_factory: LifecycleEventModelFactory,
         lifecycle_service: InstanceLifecycleInterface,
         health_check_service: HealthCheckInterface,
@@ -32,7 +32,7 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
     ) -> None:
         self.logger = get_logger()
         self.env_configuration_service = env_configuration_service
-        self.runtime_configuration_service = runtime_configuration_service
+        self.sg_configuration_service = sg_configuration_service
         self.lifecycle_event_model_factory = lifecycle_event_model_factory
         self.lifecycle_service = lifecycle_service
         self.health_check_service = health_check_service
@@ -50,7 +50,7 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
         event = context.event
 
         # Load all Scaling Group DNS configurations
-        all_scaling_groups_configs = self.runtime_configuration_service.get_scaling_groups_dns_configs()
+        all_scaling_groups_configs = self.sg_configuration_service.get_configs()
         if not all_scaling_groups_configs:
             self.logger.error("Unable to load Scaling Group DNS configurations.")
             raise BusinessException("Unable to load Scaling Group DNS configurations.")

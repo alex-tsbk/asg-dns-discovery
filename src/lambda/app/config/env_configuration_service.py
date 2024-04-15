@@ -41,11 +41,13 @@ class EnvironmentConfigurationService:
         def resolver() -> DbConfig:
             provider = environment.try_get_value("db_provider", "dynamodb")
             table_name = environment.try_get_value("db_table_name", "")
-            config_item_key_id = environment.try_get_value("db_config_item_key_id", "")
+            iac_config_item_key_id = environment.try_get_value("db_config_iac_item_key_id", "")
+            external_config_item_key_id = environment.try_get_value("db_config_external_item_key_id", "")
             return DbConfig(
                 provider=provider,
                 table_name=table_name,
-                config_item_key_id=config_item_key_id,
+                iac_config_item_key_id=iac_config_item_key_id,
+                external_config_item_key_id=external_config_item_key_id,
             )
 
         return self._cached("dynamo_config", resolver)

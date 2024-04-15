@@ -1,5 +1,5 @@
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.utils.di import DIContainer
+from app.utils.di import DIContainer, DILifetimeScope
 
 from .instance_metadata_interface import InstanceMetadataInterface
 from .instance_metadata_resolver_interface import InstanceMetadataResolverInterface
@@ -16,9 +16,15 @@ def register_services(di_container: DIContainer, env_config_service: Environment
         di_container (DIContainer): DI container
     """
     # Register resolvers
-    di_container.register(InstanceMetadataResolverInterface, DnsInstanceMetadataResolver, lifetime="scoped", name="dns")
-    di_container.register(InstanceMetadataResolverInterface, IpInstanceMetadataResolver, lifetime="scoped", name="ip")
-    di_container.register(InstanceMetadataResolverInterface, TagInstanceMetadataResolver, lifetime="scoped", name="tag")
+    di_container.register(
+        InstanceMetadataResolverInterface, DnsInstanceMetadataResolver, lifetime=DILifetimeScope.SCOPED, name="dns"
+    )
+    di_container.register(
+        InstanceMetadataResolverInterface, IpInstanceMetadataResolver, lifetime=DILifetimeScope.SCOPED, name="ip"
+    )
+    di_container.register(
+        InstanceMetadataResolverInterface, TagInstanceMetadataResolver, lifetime=DILifetimeScope.SCOPED, name="tag"
+    )
 
     # Register metadata service
-    di_container.register(InstanceMetadataInterface, InstanceMetadataService, lifetime="scoped")
+    di_container.register(InstanceMetadataInterface, InstanceMetadataService, lifetime=DILifetimeScope.SCOPED)

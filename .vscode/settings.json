@@ -40,16 +40,15 @@
     "reportTypedDictNotRequiredAccess": "warning",
   },
   "python.terminal.activateEnvironment": true,
+  "editor.formatOnSave": true,
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
-    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.organizeImports": "explicit"
     },
   },
   "[terraform]": {
     "editor.defaultFormatter": "hashicorp.terraform",
-    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.formatAll.terraform": "explicit"
     }
@@ -62,7 +61,6 @@
     "--max-line-length=255",
     "--ignore=E402,F841,F401,E302,E305,W503"
   ],
-  "isort.args":["--profile", "black"],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "python.testing.autoTestDiscoverOnSaveEnabled": true,

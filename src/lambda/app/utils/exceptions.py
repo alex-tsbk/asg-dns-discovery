@@ -1,4 +1,4 @@
-from app.config.runtime_context import RUNTIME_CONTEXT
+from app.runtime_context import RUNTIME_CONTEXT
 from app.utils.logging import get_logger
 
 

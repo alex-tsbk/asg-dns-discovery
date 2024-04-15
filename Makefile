@@ -8,6 +8,7 @@ setup: venv install
 .PHONY: venv
 venv:
 	@echo "Creating .venv..."
+	poetry config virtualenvs.prompt "py{python_version} "
 	poetry env use python3
 
 .PHONY: install

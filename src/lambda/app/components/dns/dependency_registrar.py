@@ -1,6 +1,6 @@
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.config.runtime_context import RUNTIME_CONTEXT
-from app.utils.di import DIContainer
+from app.runtime_context import RUNTIME_CONTEXT
+from app.utils.di import DIContainer, DILifetimeScope
 
 from .dns_management_interface import DnsManagementInterface
 
@@ -15,4 +15,6 @@ def register_services(di_container: DIContainer, env_config_service: Environment
     if RUNTIME_CONTEXT.is_aws:
         from .internal.aws.aws_dns_management_service import AwsDnsManagementService
 
-        di_container.register(DnsManagementInterface, AwsDnsManagementService, name="route53", lifetime="scoped")
+        di_container.register(
+            DnsManagementInterface, AwsDnsManagementService, name="route53", lifetime=DILifetimeScope.SCOPED
+        )

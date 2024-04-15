@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, override, Self
+from typing import Any, Self, override
 
 from app.utils.dataclass import DataclassBase
 
@@ -89,10 +89,15 @@ class DnsRecordConfig(DataclassBase):
     srv_weight: int = field(default=0)
     srv_port: int = field(default=0)
 
+    def uid(self) -> str:
+        """Generate a unique identifier for the DNS record configuration"""
+        return f"{self.provider.value}-{self.dns_zone_id}-{self.record_name}-{self.record_type}"
+
     def __post_init__(self):
         """Validate the DNS record configuration"""
+        # Ensure record type is uppercase
         self.record_type = self.record_type.upper()
-
+        # Guard clauses against invalid values for TTL
         if self.record_ttl < 1 or self.record_ttl > 604800:
             raise ValueError(f"Invalid record TTL: {self.record_ttl}")
 
