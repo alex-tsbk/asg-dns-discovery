@@ -1,5 +1,5 @@
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.runtime_context import RUNTIME_CONTEXT
+from app.context import RUNTIME_CONTEXT
 from app.utils.di import DIContainer, DILifetimeScope
 
 from .instance_discovery_interface import InstanceDiscoveryInterface

@@ -15,7 +15,7 @@ from app.components.dns.models.dns_change_request_model import (
 from app.components.dns.models.dns_change_response_model import DnsChangeResponseModel
 from app.components.persistence.repository_service_interface import RepositoryInterface
 from app.config.models.dns_record_config import DnsRecordConfig, DnsRecordEmptyValueMode, DnsRecordMappingMode
-from app.infrastructure.aws.route53_service import Route53Service
+from app.infrastructure.aws.services.route53_service import Route53Service
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
 
@@ -220,17 +220,11 @@ class AwsDnsManagementService(DnsManagementInterface):
         if not desired_dns_record_values:
             return self._handle_empty_scaling_group(dns_change_command.dns_config, current_dns_record_values)
 
-        return AwsDnsChangeRequestModel(
-            action=action,
-            hosted_zone_id=dns_config.dns_zone_id,
-            record_name=dns_config.record_name,
-            record_type=DnsRecordType(dns_config.record_type),
-            record_ttl=dns_config.record_ttl,
-            record_weight=dns_config.srv_weight,
-            record_priority=dns_config.srv_priority,
-            record_port=dns_config.srv_port,
-            record_values=desired_dns_record_values,
-        )
+        model = AwsDnsChangeRequestModel.from_dns_record_config(dns_config)
+        model.action = action
+        model.record_values = desired_dns_record_values
+
+        return model
 
     def _handle_empty_scaling_group(
         self, dns_config: DnsRecordConfig, current_dns_record_values: list[str]
@@ -253,12 +247,8 @@ class AwsDnsManagementService(DnsManagementInterface):
             # on the next reconciliation cycle / when new instance is launched
             dns_garbage_values = {"dns_garbage_values": current_dns_record_values}
             create_response = self.repository.create(dns_config_uid, dns_garbage_values)
-            if not create_response:
-                # Well, this is tricky.. because something might've updated the record in the meantime,
-                # which was not current application.
-                recorded_dns_config = self.repository.get(dns_config_uid)
-                if not recorded_dns_config:  # This should never happen, unless there's a bug in the code
-                    return IGNORED_DNS_CHANGE_REQUEST
+            # If the record already exists, check if the values match the current values
+            if not create_response and (recorded_dns_config := self.repository.get(dns_config_uid)):
                 # Get the recorded DNS garbage values in repository
                 recorded_dns_garbage_values = recorded_dns_config.get("dns_garbage_values", [])
                 # If the recorded values do not match the current values, override the change

@@ -40,7 +40,8 @@ class ScalingGroupConfigurationsService:
 
         # Placeholder for configuration items
         config_items: list[dict[str, Any]] = []
-        # First load items from IAC - these are critical to have to operate
+
+        # First load items from IAC (infrastructure as code, terraform-generated) - these are critical to have to operate
         try:
             iac_config_items = self._load_scaling_group_dns_configs(iac_config_item_key_id)
             config_items.extend(iac_config_items)
@@ -48,8 +49,8 @@ class ScalingGroupConfigurationsService:
         except BusinessException as e:
             raise BusinessException(f"Failed to load IAC DNS configurations: {str(e)}")
 
+        # Load external configurations if available
         try:
-            # Load items from external configuration
             external_config_items = self._load_scaling_group_dns_configs(external_config_item_key_id)
             config_items.extend(external_config_items)
             self.logger.info(f"Successfully loaded {len(external_config_items)} external DNS configurations")
@@ -71,6 +72,14 @@ class ScalingGroupConfigurationsService:
         return self._cache[CONFIG_CACHE_KEY]
 
     def _load_scaling_group_dns_configs(self, config_item_id: str) -> list[dict[str, Any]]:
+        """Load Scaling Group DNS configurations from repository.
+
+        Args:
+            config_item_id (str): ID of the configuration item in the repository.
+
+        Returns:
+            list[dict[str, Any]]: List of Scaling Group DNS configurations.
+        """
 
         # Retrieve configuration from repository
         config_definition = self.repository.get(config_item_id)

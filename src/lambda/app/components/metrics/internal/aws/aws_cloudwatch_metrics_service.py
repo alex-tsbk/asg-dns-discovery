@@ -5,7 +5,7 @@ from typing import Any
 
 from app.components.metrics.metrics_interface import MetricsInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.infrastructure.aws.cloudwatch_service import AwsCloudWatchService
+from app.infrastructure.aws.services.cloudwatch_service import AwsCloudWatchService
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json

@@ -1,6 +1,6 @@
 from app.components.lifecycle.instance_lifecycle_interface import InstanceLifecycleInterface
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleAction, LifecycleEventModel
-from app.infrastructure.aws.ec2_asg_service import AwsEc2AutoScalingService
+from app.infrastructure.aws.services.ec2_asg_service import AwsEc2AutoScalingService
 from app.utils.logging import get_logger
 
 

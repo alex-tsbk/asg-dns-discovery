@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
-from app.entities.instance_entity import InstanceMetadata, Instance, InstanceTag
+from app.entities.instance_entity import Instance, InstanceMetadata, InstanceTag
 from app.entities.scaling_group_entity import ScalingGroup
-from app.infrastructure.aws.ec2_asg_service import AwsEc2AutoScalingService
-from app.infrastructure.aws.ec2_service import AwsEc2Service
+from app.infrastructure.aws.services.ec2_asg_service import AwsEc2AutoScalingService
+from app.infrastructure.aws.services.ec2_service import AwsEc2Service
 from app.utils.logging import get_logger
 
 if TYPE_CHECKING:

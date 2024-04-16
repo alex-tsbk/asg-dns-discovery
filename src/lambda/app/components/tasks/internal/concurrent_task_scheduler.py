@@ -3,7 +3,7 @@ from typing import Any, Callable, ClassVar, Generator, NoReturn
 
 from app.components.tasks.task_scheduler_interface import TaskSchedulerInterface
 
-# from app.runtime_context import RUNTIME_CONTEXT
+# from app.context import RUNTIME_CONTEXT
 from app.utils import environment
 from app.utils.logging import get_logger
 
