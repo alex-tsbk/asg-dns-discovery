@@ -15,7 +15,7 @@ class ScalingGroupLifecycleContext(HandlerContext):
     # which themselves may have different readiness and health check configurations.
     # Thus, same instance may be passing readiness and health checks for one DNS configuration,
     # but not for another. This is why we need to track readiness and health checks for each DNS configuration.
-    instances_contexts: list[InstanceLifecycleContext] = field(default_factory=list)
+    instances_contexts: list[InstanceLifecycleContext] = field(init=False, default_factory=list)
 
     def register_instance_context(self, instance_context: InstanceLifecycleContext):
         """Register an instance context that is part of the current scaling group lifecycle.

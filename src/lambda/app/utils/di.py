@@ -48,7 +48,11 @@ class NamedInjectable:
 class DILifetimeScope(Enum):
     """Lifetime scopes for dependency injection container."""
 
+    # Transient lifetime - new instance will be created every time it's resolved.
+    # Every class get's it's own instance of dependency.
     TRANSIENT = "transient"
+    # Scoped lifetime - single instance will be created and reused for the lifetime of the container.
+    # Every class gets the same instance.
     SCOPED = "scoped"
 
 
@@ -95,7 +99,9 @@ class DIContainer:
         self._non_overridable_services: dict[_DI_SERVICE_KEY, bool] = {}
         self._scoped_instances: dict[_DI_SERVICE_KEY, Any] = {}
         self._decorated_services: dict[Hashable, list[Type[Any]]] = {}
-        # Register self so it can be injected
+        # Allows marking container as final, so no more registrations can be done
+        self.__final = False
+        # Register self so it can be injected and resolved like any other service
         self.register_instance(self, allow_override=False)
 
     def register(
@@ -112,15 +118,17 @@ class DIContainer:
             interface (Type): Type of the interface to register.
             implementation (Type): Type of the implementation to register. Will be constructed when resolved.
             name (str, optional): Name of the implementation, if need to support multiple. Defaults to None.
-            lifetime (str, optional): Lifetime of the implementation. Can be "transient" or "scoped". Defaults to "transient".
-                Transient - new instance will be created every time it's resolved.
-                Scoped - single instance will be created and reused every time it's resolved for the lifetime of the container.
+            lifetime (DILifetimeScope, optional): Lifetime scope of the implementation. Defaults to DILifetimeScope.TRANSIENT.
+                TRANSIENT - new instance will be created every time it's resolved.
+                SCOPED - single instance will be created and reused for the lifetime of the container.
             overridable (bool, optional): When set to True, allows overriding existing implementation. Defaults to True.
 
         Remarks:
             Type checking is not enforced for the implementation. It's up to the caller to ensure the implementation is correct subclass of the interface.
             This is so to allow dynamic implementation registration at runtime.
         """
+        self.__guard_against_finalization()
+
         key = (interface, name)
         # Ensure we're not overriding non-overridable services
         if key in self._non_overridable_services:
@@ -142,6 +150,8 @@ class DIContainer:
         Raises:
             ValueError: If instance with the same name is already registered and allow_override is False.
         """
+        self.__guard_against_finalization()
+
         key: _DI_SERVICE_KEY = (type(instance), name)
         if key in self._instances and not allow_override:
             raise ValueError(f"Service {key} is already registered. Please set allow_override to True to override.")
@@ -233,6 +243,8 @@ class DIContainer:
         Returns:
             Any: Instance of the given class.
         """
+        # TODO: Add guard against circular dependencies
+
         constructor = signature(cls.__init__)
         kwargs = {}
         for name, param in constructor.parameters.items():
@@ -259,3 +271,11 @@ class DIContainer:
             # By default resolve dependency without name
             kwargs[name] = self._build(param_type)
         return cls(**kwargs)
+
+    def finalize(self):
+        """Finalizes the container, preventing further registrations."""
+        self.__final = True
+
+    def __guard_against_finalization(self):
+        if self.__final:
+            raise ValueError("Container is finalized and no more registrations are allowed.")

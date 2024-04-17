@@ -1,7 +1,7 @@
 import time
 
 from app.components.mutex.distributed_lock_interface import DistributedLockInterface
-from app.components.persistence.repository_service_interface import RepositoryInterface
+from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.utils.exceptions import BusinessException, CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
@@ -10,7 +10,7 @@ from app.utils.serialization import to_json
 class DistributedLockService(DistributedLockInterface):
     """Service class for acquiring and releasing shared state resource locks."""
 
-    def __init__(self, repository: RepositoryInterface) -> None:
+    def __init__(self, repository: DatabaseRepositoryInterface) -> None:
         self.logger = get_logger()
         self.repository = repository
 

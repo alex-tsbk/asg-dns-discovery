@@ -2,7 +2,7 @@ import base64
 import json
 from typing import Any
 
-from app.components.persistence.repository_service_interface import RepositoryInterface
+from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
 from app.config.models.scaling_group_config import ScalingGroupConfiguration, ScalingGroupConfigurations
 from app.utils.exceptions import BusinessException
@@ -14,7 +14,7 @@ class ScalingGroupConfigurationsService:
 
     def __init__(
         self,
-        repository: RepositoryInterface,
+        repository: DatabaseRepositoryInterface,
         environment_config: EnvironmentConfigurationService,
     ):
         # Cache placeholder

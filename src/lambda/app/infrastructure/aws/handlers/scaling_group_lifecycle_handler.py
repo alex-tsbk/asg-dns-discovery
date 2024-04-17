@@ -5,16 +5,26 @@ from typing import Any
 
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleEventModel
 from app.components.lifecycle.models.lifecycle_event_model_factory import LifecycleEventModelFactory
+from app.handlers.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
+from app.handlers.handler_interface import HandlerInterface
+from app.utils.di import Injectable, NamedInjectable
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
 
 
-class AwsLifecycleHandler:
+class AwsScalingGroupLifecycleHandler:
     """Class responsible for handling AutoScalingGroup EC2 instances lifecycle events from AWS SNS"""
 
-    def __init__(self, lifecycle_event_model_factory: LifecycleEventModelFactory):
+    def __init__(
+        self,
+        lifecycle_event_model_factory: LifecycleEventModelFactory,
+        scaling_group_lifecycle_handler: Injectable[
+            HandlerInterface[ScalingGroupLifecycleContext], NamedInjectable(ScalingGroupLifecycleContext.__name__)
+        ],
+    ):
         self.lifecycle_event_model_factory = lifecycle_event_model_factory
+        self.scaling_group_lifecycle_handler = scaling_group_lifecycle_handler
 
     def handle(self, event: dict[str, Any], context: Any) -> dict[str, Any]:
         """Lambda handler function to be invoked by AWS SNS
@@ -33,10 +43,14 @@ class AwsLifecycleHandler:
                                 "MessageId": "4a9f3fdc-a3e3-58db-b23b-61a4edd05553",
                                 "TopicArn": "arn:aws:sns:us-east-1:123456789012:dev-sg-dns-discovery",
                                 "Subject": "Auto Scaling:  Lifecycle action 'TERMINATING' for instance i-05629ab7d9287e205 in progress.",
-                                "Message": "{\"Origin\":\"AutoScalingGroup\",\"LifecycleHookName\":\"dev-sg-dns-discovery-drain\",\"Destination\":\"EC2\",\"AccountId\":\"123456789012\",\"RequestId\":\"f02639a5-62b9-0772-d50e-09647ae07b49\",\"LifecycleTransition\":\"autoscaling:EC2_INSTANCE_TERMINATING\",\"AutoScalingGroupName\":\"example-asg\",\"Service\":\"AWS Auto Scaling\",\"Time\":\"2024-03-23T03:26:43.904Z\",\"EC2InstanceId\":\"i-05629ab7d9287e205\",\"LifecycleActionToken\":\"465e0162-e6af-4786-b4e8-bb544ae58790\"}",
+                                "Message": "{\"Origin\":\"AutoScalingGroup\",\"LifecycleHookName\":\"dev-sg-dns-discovery-drain\",
+                                    \"Destination\":\"EC2\",\"AccountId\":\"123456789012\",\"RequestId\":\"f02639a5-62b9-0772-d50e-09647ae07b49\",
+                                    \"LifecycleTransition\":\"autoscaling:EC2_INSTANCE_TERMINATING\",\"AutoScalingGroupName\":\"example-asg\",
+                                    \"Service\":\"AWS Auto Scaling\",\"Time\":\"2024-03-23T03:26:43.904Z\",\"EC2InstanceId\":\"i-05629ab7d9287e205\",
+                                    \"LifecycleActionToken\":\"465e0162-e6af-4786-b4e8-bb544ae58790\"}",
                                 "Timestamp": "2024-03-23T03:26:43.936Z",
                                 "SignatureVersion": "1",
-                                "Signature": "kp5cD4T10FSCd7RuEmD+JASqJBhQ07SGGverRPWKZxi+v3HzRvhf5mndsdgB+nIaSado19FcoBrD5F/8LZcRxx3NqMROQSe496qqIrI6OlpebllZrj1T+Sv7oWtwurzeVD9FvBrVZuQ/rpYhVZxYEd/4pwq9WLG98xP9/82aOWyEJ+yPkxQ4hDccuXgX5wMD7qzAZvDHqs92v2T1E8pk/bQQ1dDRLM/NOoVYxpgghgCTdNCRjboHbxliR5lP7AMsW/LRYPPYsIa+34V6epXpJc3WWLpxiy/++AzG5KEN2+u+rWtceC3kwhFV5Q3ytxm3q3sld3TG7wIF70cJOtDwCg==",
+                                "Signature": "kp5cD...OtDwCg==",
                                 "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-60eadc530605d63b8e62a523676ef735.pem",
                                 "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:dev-sg-dns-discovery:f4fdba36-a856-4dde-ad38-99aa1190c534",
                                 "MessageAttributes": {}
@@ -77,10 +91,17 @@ class AwsLifecycleHandler:
                                 "MessageId": "aaaa557e-eab9-5564-882a-0b06bf03034e",
                                 "TopicArn": "arn:aws:sns:us-east-1:123456789012:dev-sg-dns-discovery",
                                 "Subject": "Auto Scaling:  Lifecycle action 'LAUNCHING' for instance i-085e741d27b2407a8 in progress.",
-                                "Message": "{\"Origin\":\"EC2\",\"LifecycleHookName\":\"dev-sg-dns-discovery-register\",\"Destination\":\"AutoScalingGroup\",\"AccountId\":\"123456789012\",\"RequestId\":\"b4b639a5-d7e1-d6a6-988d-594d59fbfc05\",\"LifecycleTransition\":\"autoscaling:EC2_INSTANCE_LAUNCHING\",\"AutoScalingGroupName\":\"example-asg\",\"Service\":\"AWS Auto Scaling\",\"Time\":\"2024-03-23T03:58:50.043Z\",\"EC2InstanceId\":\"i-085e741d27b2407a8\",\"LifecycleActionToken\":\"c9f2cd07-a390-4a22-913e-16df11021521\"}",
+                                "Message": "{
+                                    \"Origin\":\"EC2\",\"LifecycleHookName\":\"dev-sg-dns-discovery-register\",
+                                    \"Destination\":\"AutoScalingGroup\",\"AccountId\":\"123456789012\",
+                                    \"RequestId\":\"b4b639a5-d7e1-d6a6-988d-594d59fbfc05\",
+                                    \"LifecycleTransition\":\"autoscaling:EC2_INSTANCE_LAUNCHING\",
+                                    \"AutoScalingGroupName\":\"example-asg\",\"Service\":\"AWS Auto Scaling\",
+                                    \"Time\":\"2024-03-23T03:58:50.043Z\",\"EC2InstanceId\":\"i-085e741d27b2407a8\",
+                                    \"LifecycleActionToken\":\"c9f2cd07-a390-4a22-913e-16df11021521\"}",
                                 "Timestamp": "2024-03-23T03:58:50.084Z",
                                 "SignatureVersion": "1",
-                                "Signature": "GKV8cOcEkA21776xM/gMx0kwyF8S5jA9/vlzoSY1plh65zvw6GVIUW9NcxhfDEuuVHs2KtGR9v0zxmSc5Ld1T07b1ycQ0LEnQ4TlK9PCjMUGvtXksObXdW6RRRa05AN4SltKT3rN0DkKzdxNMOx0nzPsxEttvb5IRNy7Tn1+TDatE3+EktofnvbXMIYbyobnSgBD2GmYecmsQSDKwtAdeQH5X5U5XFn3UP1x8Sa80vfy3u2ZhXB4N6+5RI70wUF1FSP0GCGc+iOR0jI43I6t0lyHvgi5d5W6x5VqjD7kbATwITknZVRu4IA56IphbwAHnNfRgy+/kqrwmJsM91kAJw==",
+                                "Signature": "GKV8c...Jw==",
                                 "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-60eadc530605d63b8e62a523676ef735.pem",
                                 "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:dev-sg-dns-discovery:f4fdba36-a856-4dde-ad38-99aa1190c534",
                                 "MessageAttributes": {}
@@ -141,14 +162,15 @@ class AwsLifecycleHandler:
         except Exception as e:
             raise BusinessException(f"Error creating lifecycle event model: {str(e)}") from e
 
+        scaling_group_lifecycle_context = ScalingGroupLifecycleContext(event=event_model)
+
         # Looks like we have a lifecycle event, let's handle it
         logger.debug("Initializing lifecycle service handling...")
         try:
-            lifecycle_service = LifecycleService()
             logger.info(
                 f"Handling lifecycle event for AutoScalingGroup: {sns_message['AutoScalingGroupName']} and EC2 instance: {sns_message['EC2InstanceId']}"
             )
-            result = lifecycle_service.handle(sns_message)
+            result = self.scaling_group_lifecycle_handler.handle(scaling_group_lifecycle_context)
         except Exception as e:
             # TODO: Submit failure data point to CloudWatch
             logger.error(f"Error handling lifecycle event: {str(e)}")

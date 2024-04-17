@@ -1,12 +1,12 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, Mapping
+from typing import Any
 
 
-class RepositoryInterface(metaclass=ABCMeta):
-    """Interface for repository service. Don't confuse this with Repository pattern."""
+class DatabaseRepositoryInterface(metaclass=ABCMeta):
+    """Contract for accessing data in storage implementation."""
 
     @abstractmethod
-    def get(self, key: str) -> Mapping[str, Any] | None:
+    def get(self, key: str) -> dict[str, Any] | None:
         """Gets item from storage.
 
         Args:
@@ -18,7 +18,7 @@ class RepositoryInterface(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def create(self, key: str, item: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    def create(self, key: str, item: dict[str, Any]) -> dict[str, Any] | None:
         """Create item in DynamoDB table.
 
         Args:
@@ -31,7 +31,7 @@ class RepositoryInterface(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def put(self, key: str, item: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    def put(self, key: str, item: dict[str, Any]) -> dict[str, Any] | None:
         """Put item in storage.
 
         Args:

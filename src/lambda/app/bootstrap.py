@@ -2,7 +2,7 @@ import importlib.util
 import os
 from importlib.machinery import ModuleSpec
 
-from app.utils.di import DIContainer
+from app.utils.di import DIContainer, DILifetimeScope
 from context import RUNTIME_CONTEXT
 
 
@@ -30,7 +30,11 @@ def __register_aws_dependencies(di_container: DIContainer) -> None:
     Args:
         di_container (DIContainer): Dependency injection container
     """
-    pass
+    from app.infrastructure.aws.handlers.scaling_group_lifecycle_handler import AwsScalingGroupLifecycleHandler
+
+    di_container.register(
+        AwsScalingGroupLifecycleHandler, AwsScalingGroupLifecycleHandler, lifetime=DILifetimeScope.SCOPED
+    )
 
 
 def __register_components_dependencies(components_directory: str, di_container: DIContainer) -> None:
@@ -79,5 +83,7 @@ def bootstrap() -> DIContainer:
     # Finally, register dependencies for all components
     # TODO: Figure out relative path correctly...
     __register_components_dependencies("src/lambda/app/components", di_container)
+    # Mark container as final so no new registrations can be made
+    di_container.finalize()
     # Return the DI container
     return di_container

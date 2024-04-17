@@ -13,7 +13,7 @@ from app.components.dns.models.dns_change_request_model import (
     DnsRecordType,
 )
 from app.components.dns.models.dns_change_response_model import DnsChangeResponseModel
-from app.components.persistence.repository_service_interface import RepositoryInterface
+from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.config.models.dns_record_config import DnsRecordConfig, DnsRecordEmptyValueMode, DnsRecordMappingMode
 from app.infrastructure.aws.services.route53_service import Route53Service
 from app.utils.logging import get_logger
@@ -30,7 +30,7 @@ class AwsDnsManagementService(DnsManagementInterface):
         self,
         route_53_service: Route53Service,
         instance_discovery_service: InstanceDiscoveryInterface,
-        repository: RepositoryInterface,
+        repository: DatabaseRepositoryInterface,
     ) -> None:
         self.logger = get_logger()
         self.route_53_service = route_53_service

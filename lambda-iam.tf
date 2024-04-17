@@ -108,7 +108,7 @@ data "aws_iam_policy_document" "dns_discovery_lambda_permissions" {
       "dynamodb:DescribeTable",
     ]
     resources = [
-      aws_dynamodb_table.dns_discovery_state_lock_table.arn
+      aws_dynamodb_table.dns_discovery_table.arn
     ]
   }
 
