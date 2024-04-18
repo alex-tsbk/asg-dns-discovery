@@ -2,7 +2,7 @@ from typing import Any, Protocol
 
 
 class HandlerProtocol(Protocol):
-    """Handler protocol that all handlers handling inbound events must implement."""
+    """Handler protocol that all handlers handling external events should comply to."""
 
     def handle(self, event: dict[str, Any], context: Any) -> dict[str, Any]:
         """Handles inbound events.

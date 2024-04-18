@@ -10,8 +10,13 @@ from app.utils import environment
 class EnvironmentConfigurationService:
     """Service class for resolving application configuration from environment variables"""
 
-    def __init__(self):
-        # Cache placeholders
+    def __init__(self, use_cache: bool = True):
+        """Initializes the service
+
+        Args:
+            use_cache (bool, optional): Whether to use cache. Defaults to True.
+        """
+        self._use_cache = use_cache
         self._cache: dict[str, Any] = {}
 
     @property
@@ -98,6 +103,6 @@ class EnvironmentConfigurationService:
         Returns:
             any: Cached value
         """
-        if key not in self._cache:
+        if not self._use_cache or key not in self._cache:
             self._cache[key] = resolver()
         return self._cache[key]

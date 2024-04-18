@@ -37,4 +37,10 @@ class ReadinessConfig(DataclassBase):
             "tag_value": "<tag_value>"
         }
         """
-        return cls(**data)
+        return cls(
+            enabled=str(data.get("enabled", "false")).lower() == "true",
+            interval_seconds=int(data.get("interval_seconds", 5)),
+            timeout_seconds=int(data.get("timeout_seconds", 60)),
+            tag_key=str(data.get("tag_key", "app:readiness:status")),
+            tag_value=str(data.get("tag_value", "ready")),
+        )

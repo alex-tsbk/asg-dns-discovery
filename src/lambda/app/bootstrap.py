@@ -2,6 +2,8 @@ import importlib.util
 import os
 from importlib.machinery import ModuleSpec
 
+from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
+from app.config.env_configuration_service import EnvironmentConfigurationService
 from app.utils.di import DIContainer, DILifetimeScope
 from context import RUNTIME_CONTEXT
 
@@ -21,7 +23,8 @@ def __register_default_dependencies(di_container: DIContainer) -> None:
     Args:
         di_container (DIContainer): Dependency injection container
     """
-    pass
+    # Register the environment configuration service
+    di_container.register_instance(EnvironmentConfigurationService())
 
 
 def __register_aws_dependencies(di_container: DIContainer) -> None:
@@ -30,10 +33,14 @@ def __register_aws_dependencies(di_container: DIContainer) -> None:
     Args:
         di_container (DIContainer): Dependency injection container
     """
-    from app.infrastructure.aws.handlers.scaling_group_lifecycle_handler import AwsScalingGroupLifecycleHandler
+    from app.handlers.aws.scaling_group_lifecycle_event_handler import AwsScalingGroupLifecycleEventHandler
+    from app.infrastructure.aws.services.dynamodb_repository import DynamoDbTableRepository
 
     di_container.register(
-        AwsScalingGroupLifecycleHandler, AwsScalingGroupLifecycleHandler, lifetime=DILifetimeScope.SCOPED
+        AwsScalingGroupLifecycleEventHandler, AwsScalingGroupLifecycleEventHandler, lifetime=DILifetimeScope.SCOPED
+    )
+    di_container.register(
+        DatabaseRepositoryInterface, DynamoDbTableRepository, name="dynamodb", lifetime=DILifetimeScope.SCOPED
     )
 
 

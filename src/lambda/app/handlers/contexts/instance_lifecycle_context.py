@@ -6,7 +6,7 @@ from app.components.readiness.models.readiness_result_model import ReadinessResu
 from app.config.models.health_check_config import HealthCheckConfig
 from app.config.models.readiness_config import ReadinessConfig
 from app.config.models.scaling_group_config import ScalingGroupConfiguration
-from app.entities.instance_entity import Instance
+from app.entities.instance import Instance
 from app.handlers.handler_context import HandlerContext
 
 

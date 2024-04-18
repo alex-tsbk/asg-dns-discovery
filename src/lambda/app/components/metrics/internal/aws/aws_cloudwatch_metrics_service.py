@@ -5,7 +5,7 @@ from typing import Any
 
 from app.components.metrics.metrics_interface import MetricsInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.infrastructure.aws.services.cloudwatch_service import AwsCloudWatchService
+from app.infrastructure.aws.services.cloudwatch_service import CloudWatchService
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
@@ -16,7 +16,7 @@ class AwsCloudwatchMetricsService(MetricsInterface):
     """Concrete implementation of metrics service using AWS Cloudwatch"""
 
     def __init__(
-        self, cloudwatch_service: AwsCloudWatchService, env_configuration_service: EnvironmentConfigurationService
+        self, aws_cloudwatch_service: CloudWatchService, env_configuration_service: EnvironmentConfigurationService
     ):
         self.logger = get_logger()
         # Specify processing date time
@@ -26,7 +26,7 @@ class AwsCloudwatchMetricsService(MetricsInterface):
         self.metric_data_points: list[dict[str, Any]] = []
         # Metric dimensions - shared across all metrics pushed
         self.metric_dimensions: list[dict[str, Any]] = []
-        self.cloudwatch_service = cloudwatch_service
+        self.aws_cloudwatch_service = aws_cloudwatch_service
 
     def reset(self):
         """Resets the metrics service to a clean state"""
@@ -89,7 +89,7 @@ class AwsCloudwatchMetricsService(MetricsInterface):
 
         try:
             # Put metric data
-            self.cloudwatch_service.publish_metric_data(
+            self.aws_cloudwatch_service.publish_metric_data(
                 namespace=self.cloudwatch_metrics_namespace,
                 metric_data=self.metric_data_points,  # type: ignore -- underlying boto3 type now available at runtime
             )

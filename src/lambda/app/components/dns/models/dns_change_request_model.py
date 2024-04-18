@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Any, Mapping, Self
 
 from app.config.models.dns_record_config import DnsRecordConfig
+from app.utils import enums
 from app.utils.dataclass import DataclassBase
 
 
@@ -33,17 +34,6 @@ class DnsChangeRequestAction(Enum):
     UPDATE = "UPDATE"
     # IGNORE: Do nothing. Used for cases where no action is required (actual record state matches the desired state)
     IGNORE = "IGNORE"
-
-    def __str__(self) -> str:
-        return self.value
-
-    @staticmethod
-    def from_str(label: str) -> "DnsChangeRequestAction":
-        """Returns the DNS change request action from the label"""
-        label = label.upper()
-        if hasattr(DnsChangeRequestAction, label):
-            return DnsChangeRequestAction[label.upper()]
-        raise NotImplementedError(f"Unsupported action: {label}")
 
 
 @dataclass(kw_only=True)
@@ -112,10 +102,12 @@ class DnsChangeRequestModel(DataclassBase):
         Creates a DNS change request model from a DNS record configuration.
         """
         return cls(
+            # This is a helper method, and it's not expected to be called with an IGNORED action
             action=DnsChangeRequestAction.IGNORE,
+            # The rest of the fields are taken from the DNS record configuration
             hosted_zone_id=dns_record_config.dns_zone_id,
             record_name=dns_record_config.record_name,
-            record_type=DnsRecordType(dns_record_config.record_type),
+            record_type=enums.to_enum(dns_record_config.record_type, DnsRecordType),
             record_ttl=dns_record_config.record_ttl,
             record_weight=dns_record_config.srv_weight,
             record_priority=dns_record_config.srv_priority,
@@ -123,5 +115,8 @@ class DnsChangeRequestModel(DataclassBase):
 
 
 IGNORED_DNS_CHANGE_REQUEST = DnsChangeRequestModel(
-    action=DnsChangeRequestAction.IGNORE, hosted_zone_id="NaN", record_name="NaN", record_type=DnsRecordType.TXT
+    action=DnsChangeRequestAction.IGNORE,
+    hosted_zone_id="IGNORED_DNS_CHANGE_REQUEST",
+    record_name="IGNORED_DNS_CHANGE_REQUEST",
+    record_type=DnsRecordType.TXT,
 )

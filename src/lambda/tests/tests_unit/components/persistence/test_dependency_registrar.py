@@ -1,9 +1,9 @@
 from typing import Callable
 from unittest.mock import MagicMock
 
+from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.components.persistence.dependency_registrar import register_services
 from app.components.persistence.internal.aws.aws_database_repository import AwsDatabaseRepository
-from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
 from app.utils.di import DILifetimeScope
 

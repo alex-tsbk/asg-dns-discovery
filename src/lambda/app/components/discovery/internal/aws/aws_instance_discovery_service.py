@@ -3,24 +3,24 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
-from app.entities.instance_entity import Instance, InstanceMetadata, InstanceTag
-from app.entities.scaling_group_entity import ScalingGroup
-from app.infrastructure.aws.services.ec2_asg_service import AwsEc2AutoScalingService
-from app.infrastructure.aws.services.ec2_service import AwsEc2Service
+from app.entities.instance import Instance, InstanceMetadata, InstanceTag
+from app.entities.scaling_group import ScalingGroup
+from app.infrastructure.aws.services.ec2_asg_service import Ec2AutoScalingService
+from app.infrastructure.aws.services.ec2_service import Ec2Service
 from app.utils.logging import get_logger
 
 if TYPE_CHECKING:
-    from mypy_boto3_ec2.type_defs import InstanceTypeDef as InstanceTypeDef
+    from mypy_boto3_ec2.type_defs import InstanceTypeDef
 
 
 class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
     """Service for discovering and collecting required information on
     EC2 instances in AWS together with their metadata."""
 
-    def __init__(self, aws_ec2_service: AwsEc2Service, aws_asg_service: AwsEc2AutoScalingService):
+    def __init__(self, aws_ec2_service: Ec2Service, aws_ec2_asg_service: Ec2AutoScalingService):
         self.logger = get_logger()
         self.aws_ec2_service = aws_ec2_service
-        self.aws_asg_service = aws_asg_service
+        self.aws_ec2_asg_service = aws_ec2_asg_service
 
     def describe_instances(self, *instances_ids: str) -> list[Instance]:
         """Describe the instances with the given IDs.
@@ -47,7 +47,7 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
             instances_models[instance_model.instance_id] = instance_model
 
         # Collect Auto Scaling Group instances information
-        scaling_groups = self.aws_asg_service.describe_instances(
+        scaling_groups = self.aws_ec2_asg_service.describe_instances(
             auto_scaling_group_names=list(auto_scaling_group_names)
         )
         for _, scaling_group_instances in scaling_groups.items():
@@ -74,7 +74,7 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
         # We'll store the instances models in a dictionary for fast lookup
         instances_models: dict[str, Instance] = {}
         # Collect Auto Scaling Group instances information
-        scaling_groups = self.aws_asg_service.describe_instances(
+        scaling_groups = self.aws_ec2_asg_service.describe_instances(
             auto_scaling_group_names=list(scaling_groups_names),
         )
         for scaling_group_name, scaling_group_instances in scaling_groups.items():

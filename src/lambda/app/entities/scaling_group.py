@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 
 from app.utils.dataclass import DataclassBase
 
-from .instance_entity import Instance
+from .instance import Instance
 
 
 @dataclass

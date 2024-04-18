@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import boto3
 from app.infrastructure.aws import boto_config
@@ -20,7 +20,7 @@ class Route53Service(metaclass=Singleton):
     Service class for managing DNS records using AWS Route53.
     """
 
-    route53_client: Route53Client = boto3.client("route53", config=boto_config.CONFIG)  # type: ignore
+    route53_client: ClassVar[Route53Client] = boto3.client("route53", config=boto_config.CONFIG)  # type: ignore
     cached_hosted_zones: dict[str, str] = {}
 
     def __init__(self):

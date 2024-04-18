@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Self, override
 
+from app.utils import enums
 from app.utils.dataclass import DataclassBase
 
 
@@ -15,13 +16,6 @@ class HealthCheckProtocol(Enum):
     TCP = "TCP"
     HTTP = "HTTP"
     HTTPS = "HTTPS"
-
-    @staticmethod
-    def from_str(label: str):
-        """Returns the DNS record mapping mode from the label"""
-        if not hasattr(HealthCheckProtocol, label.upper()):
-            raise ValueError(f"Unsupported protocol: {label}")
-        return HealthCheckProtocol[label.upper()]
 
 
 @dataclass
@@ -82,6 +76,6 @@ class HealthCheckConfig(DataclassBase):
             endpoint_source=data.get("endpoint_source", "ip:private"),
             path=data.get("path", ""),
             port=int(data.get("port", "")),
-            protocol=HealthCheckProtocol.from_str(str(data.get("protocol", HealthCheckProtocol.HTTP.value)).upper()),
+            protocol=enums.to_enum(data.get("protocol"), default=HealthCheckProtocol.HTTP),
             timeout_seconds=data.get("timeout_seconds", 5),
         )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
-from app.entities.instance_entity import Instance
+from app.entities.instance import Instance
 from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.handlers.handler_base import HandlerBase
 from app.handlers.handler_context import HandlerContext

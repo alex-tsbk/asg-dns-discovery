@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 from app.components.metadata.models.metadata_result_model import MetadataResultModel
 from app.components.metadata.models.metadata_value_source_model import MetadataValueSourceModel
-from app.entities.instance_entity import Instance
+from app.entities.instance import Instance
 
 
 class InstanceMetadataResolverInterface(metaclass=ABCMeta):

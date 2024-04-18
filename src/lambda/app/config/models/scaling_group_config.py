@@ -5,6 +5,7 @@ from typing import Any, Optional, Self, override
 from app.config.models.dns_record_config import DnsRecordConfig
 from app.config.models.health_check_config import HealthCheckConfig
 from app.config.models.readiness_config import ReadinessConfig
+from app.utils import enums
 from app.utils.dataclass import DataclassBase
 
 
@@ -76,25 +77,23 @@ class ScalingGroupConfiguration(DataclassBase):
     @override
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
-        kwargs: dict[str, Any] = {
+        params: dict[str, Any] = {
             "scaling_group_name": data.get("scaling_group_name"),
             "dns_config": DnsRecordConfig.from_dict(data.get("dns_config", {})),
+            "multiple_config_proceed_mode": enums.to_enum(
+                data.get("multiple_config_proceed_mode"), default=ScalingGroupProceedMode.ALL_OPERATIONAL
+            ),
         }
-        # Optional fields
-        if "multiple_config_proceed_mode" in data:
-            kwargs["multiple_config_proceed_mode"] = ScalingGroupProceedMode(
-                str(data["multiple_config_proceed_mode"]).upper()
-            )
         # Only create health check config if it's present in the config
         health_check_config = data.get("health_check_config", {})
         if health_check_config:
-            kwargs["health_check_config"] = HealthCheckConfig.from_dict(health_check_config)
+            params["health_check_config"] = HealthCheckConfig.from_dict(health_check_config)
         # Only create readiness config if it's present in the config
         readiness_config = data.get("readiness_config", {})
         if readiness_config:
-            kwargs["readiness_config"] = ReadinessConfig.from_dict(readiness_config)
+            params["readiness_config"] = ReadinessConfig.from_dict(readiness_config)
         # Initialize the config
-        return cls(**kwargs)
+        return cls(**params)
 
 
 @dataclass

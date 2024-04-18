@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from app.entities.instance_entity import Instance
+from app.entities.instance import Instance
 
 from .models.metadata_result_model import MetadataResultModel
 

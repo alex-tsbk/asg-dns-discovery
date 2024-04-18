@@ -2,7 +2,7 @@ from app.components.metadata.instance_metadata_interface import InstanceMetadata
 from app.components.metadata.instance_metadata_resolver_interface import InstanceMetadataResolverInterface
 from app.components.metadata.models.metadata_result_model import MetadataResultModel
 from app.components.metadata.models.metadata_value_source_model import MetadataValueSourceModel
-from app.entities.instance_entity import Instance
+from app.entities.instance import Instance
 from app.utils.di import DIContainer
 from app.utils.exceptions import BusinessException
 

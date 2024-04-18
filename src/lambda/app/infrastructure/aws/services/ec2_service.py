@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Sequence
 
 import boto3
 from app.infrastructure.aws import boto_config
@@ -15,15 +15,16 @@ if TYPE_CHECKING:
     from mypy_boto3_ec2.type_defs import InstanceTypeDef
 
 
-class AwsEc2Service(metaclass=Singleton):
+class Ec2Service(metaclass=Singleton):
     """Service class for interacting with EC2."""
+
+    ec2_client: ClassVar[EC2Client] = boto3.client("ec2", config=boto_config.CONFIG)  # type: ignore
 
     def __init__(self):
         self.logger = get_logger()
-        self.ec2_client: EC2Client = boto3.client("ec2", config=boto_config.CONFIG)  # type: ignore
         self.ec2_describe_instances_paginator: DescribeInstancesPaginator = self.ec2_client.get_paginator(
             "describe_instances"
-        )
+        )  # type: ignore
 
     def get_instance(self, instance_id: str) -> InstanceTypeDef | None:
         """Gets EC2 instance by instance ID

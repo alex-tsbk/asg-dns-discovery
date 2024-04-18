@@ -28,8 +28,12 @@
 		}
 	},
 	"containerEnv": {
+		// Set max line length for Black formatter
 		"PYTHON_MAX_LINE_LENGTH": "120",
-		"POETRY_VIRTUALENVS_IN_PROJECT": "true"
+		// Create .venv in the project directory
+		"POETRY_VIRTUALENVS_IN_PROJECT": "true",
+		// This allows auto-imports to work correctly in the Python extension
+		"PYTHONPATH": "${workspaceFolder}/src/lambda"
 	},
 	"postStartCommand": "make setup",
 	"remoteUser": "root"

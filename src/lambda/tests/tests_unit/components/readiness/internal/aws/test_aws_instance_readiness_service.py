@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from app.components.readiness.internal.aws.aws_instance_readiness_service import AwsInstanceReadinessService
@@ -6,7 +6,8 @@ from app.config.models.readiness_config import ReadinessConfig
 
 
 @pytest.fixture
-def ec2_service():
+@patch("app.infrastructure.aws.services.ec2_service.Ec2Service.boto3.client")
+def ec2_service(patched_boto3_client):
     return MagicMock()
 
 

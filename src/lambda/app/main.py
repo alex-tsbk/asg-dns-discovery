@@ -23,9 +23,9 @@ def event_request_handler(*args: Any, **kwargs: Any) -> Any:
     # Load the handler based on the cloud provider
     if RUNTIME_CONTEXT.is_aws:
         # Import handler and pass through the event
-        from app.infrastructure.aws.handlers.scaling_group_lifecycle_handler import AwsScalingGroupLifecycleHandler
+        from app.handlers.aws.scaling_group_lifecycle_event_handler import AwsScalingGroupLifecycleEventHandler
 
-        handler = di_container.resolve(AwsScalingGroupLifecycleHandler)
+        handler = di_container.resolve(AwsScalingGroupLifecycleEventHandler)
 
     if handler is None:
         raise BusinessException(f"Handler not found for the specified cloud provider: {RUNTIME_CONTEXT.cloud_provider}")

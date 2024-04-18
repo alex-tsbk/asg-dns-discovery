@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import boto3
+from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.infrastructure.aws import boto_config
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
 from botocore.exceptions import ClientError
-from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 
 if TYPE_CHECKING:
     from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource, Table
@@ -19,23 +19,23 @@ if TYPE_CHECKING:
     )
 
 
-class AwsDynamoDbTableRepository(DatabaseRepositoryInterface):
+class DynamoDbTableRepository(DatabaseRepositoryInterface):
     """Repository for interacting with AWS DynamoDB Table.
     Having this class allows to abstract the interaction with DynamoDB table specifically,
     and allows to mock the DynamoDB table in unit tests.
     """
 
-    dynamodb: ClassVar[DynamoDBServiceResource] = boto3.resource("dynamodb", config=boto_config.CONFIG)  # type: ignore
+    dynamodb_resource: ClassVar[DynamoDBServiceResource] = boto3.resource("dynamodb", config=boto_config.CONFIG)  # type: ignore
 
     def __init__(self, table_name: str):
-        """Ctor for AwsDynamoDbTableRepository.
+        """Default ctor.
 
         Args:
             table_name (str): Name of the DynamoDB table to interact with.
         """
         self.logger = get_logger()
         self.table_name: str = table_name
-        self.table: Table = self.dynamodb.Table(table_name)
+        self.table: Table = self.dynamodb_resource.Table(table_name)
 
     def get(self, key: str) -> dict[str, Any]:
         """Get item from DynamoDB table.

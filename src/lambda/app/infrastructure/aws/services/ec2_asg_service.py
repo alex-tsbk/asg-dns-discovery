@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any, Sequence
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Sequence
 
 import boto3
 from app.infrastructure.aws import boto_config
@@ -15,12 +15,13 @@ if TYPE_CHECKING:
     from mypy_boto3_autoscaling.type_defs import FilterTypeDef, InstanceTypeDef
 
 
-class AwsEc2AutoScalingService(metaclass=Singleton):
+class Ec2AutoScalingService(metaclass=Singleton):
     """Service class for interacting with AWS EC2 Auto-Scaling Groups."""
+
+    autoscaling_client: ClassVar[AutoScalingClient] = boto3.client("autoscaling", config=boto_config.CONFIG)  # type: ignore
 
     def __init__(self):
         self.logger = get_logger()
-        self.autoscaling_client: AutoScalingClient = boto3.client("autoscaling", config=boto_config.CONFIG)  # type: ignore
 
     def describe_instances(
         self,

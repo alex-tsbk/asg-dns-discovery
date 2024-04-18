@@ -13,7 +13,7 @@ from app.utils.logging import get_logger
 from app.utils.serialization import to_json
 
 
-class AwsScalingGroupLifecycleHandler:
+class AwsScalingGroupLifecycleEventHandler:
     """Class responsible for handling AutoScalingGroup EC2 instances lifecycle events from AWS SNS"""
 
     def __init__(

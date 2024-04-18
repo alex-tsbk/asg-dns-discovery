@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Self, override
 
+from app.utils import enums
 from app.utils.dataclass import DataclassBase
 
 
@@ -24,13 +25,6 @@ class DnsRecordMappingMode(Enum):
     #     ;; subdomain.example.com A 12.82.13.83
     SINGLE_LATEST = "SINGLE_LATEST"
 
-    @staticmethod
-    def from_str(label: str):
-        """Returns the DNS record mapping mode from the label"""
-        if not hasattr(DnsRecordMappingMode, label.upper()):
-            raise NotImplementedError(f"Unsupported mode: {label}")
-        return DnsRecordMappingMode[label.upper()]
-
 
 class DnsRecordProvider(Enum):
     """DNS record provider"""
@@ -38,13 +32,6 @@ class DnsRecordProvider(Enum):
     ROUTE53 = "route53"
     CLOUDFLARE = "cloudflare"
     MOCK = "mock"
-
-    @staticmethod
-    def from_str(label: str):
-        """Returns the DNS record provider from the label"""
-        if not hasattr(DnsRecordProvider, label.upper()):
-            raise NotImplementedError(f"Unsupported provider: {label}")
-        return DnsRecordProvider[label.upper()]
 
 
 class DnsRecordEmptyValueMode(Enum):
@@ -56,13 +43,6 @@ class DnsRecordEmptyValueMode(Enum):
     DELETE = "DELETE"
     # FIXED: Use a fixed value if no value is available.
     FIXED = "FIXED"
-
-    @staticmethod
-    def from_str(label: str):
-        """Returns the DNS no value action from the label"""
-        if not hasattr(DnsRecordEmptyValueMode, label.upper()):
-            raise NotImplementedError(f"Unsupported no value action: {label}")
-        return DnsRecordEmptyValueMode[label.upper()]
 
 
 @dataclass
@@ -126,7 +106,7 @@ class DnsRecordConfig(DataclassBase):
         empty_mode_raw: str = data.get("empty_mode", DnsRecordEmptyValueMode.KEEP.value)
         empty_mode_arr = empty_mode_raw.split(":", 1)
         try:
-            empty_mode = DnsRecordEmptyValueMode.from_str(empty_mode_arr[0])
+            empty_mode = enums.to_enum(empty_mode_arr[0], DnsRecordEmptyValueMode)
         except Exception as e:
             raise ValueError(f"Invalid empty mode: {empty_mode_raw}") from e
 
@@ -135,8 +115,8 @@ class DnsRecordConfig(DataclassBase):
             empty_mode_value = empty_mode_arr[1]
 
         return cls(
-            provider=DnsRecordProvider.from_str(data.get("provider", DnsRecordProvider.ROUTE53.value)),
-            mode=DnsRecordMappingMode.from_str(data.get("mode", DnsRecordMappingMode.MULTIVALUE.value)),
+            provider=enums.to_enum(data.get("provider"), default=DnsRecordProvider.ROUTE53),
+            mode=enums.to_enum(data.get("mode"), default=DnsRecordMappingMode.MULTIVALUE),
             empty_mode=empty_mode,
             empty_mode_value=empty_mode_value,
             value_source=str(data.get("value_source", "ip:private")).lower(),

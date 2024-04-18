@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
-from app.entities.instance_entity import Instance
-from app.entities.scaling_group_entity import ScalingGroup
+from app.entities.instance import Instance
+from app.entities.scaling_group import ScalingGroup
 
 
 class InstanceDiscoveryInterface(metaclass=ABCMeta):
