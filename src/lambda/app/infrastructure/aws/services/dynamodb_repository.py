@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar
 
-import boto3
 from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
-from app.infrastructure.aws import boto_config
+from app.infrastructure.aws.boto_factory import resolve_client
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
@@ -25,7 +24,7 @@ class DynamoDbTableRepository(DatabaseRepositoryInterface):
     and allows to mock the DynamoDB table in unit tests.
     """
 
-    dynamodb_resource: ClassVar[DynamoDBServiceResource] = boto3.resource("dynamodb", config=boto_config.CONFIG)  # type: ignore
+    dynamodb_resource: ClassVar[DynamoDBServiceResource] = resolve_client("dynamodb")  # type: ignore
 
     def __init__(self, table_name: str):
         """Default ctor.

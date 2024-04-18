@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar, Sequence
 
-import boto3
-from app.infrastructure.aws import boto_config
+from app.infrastructure.aws.boto_factory import resolve_client
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.singleton import Singleton
@@ -18,7 +17,7 @@ if TYPE_CHECKING:
 class Ec2Service(metaclass=Singleton):
     """Service class for interacting with EC2."""
 
-    ec2_client: ClassVar[EC2Client] = boto3.client("ec2", config=boto_config.CONFIG)  # type: ignore
+    ec2_client: ClassVar[EC2Client] = resolve_client("ec2")  # type: ignore
 
     def __init__(self):
         self.logger = get_logger()

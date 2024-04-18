@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-import boto3
-from app.infrastructure.aws import boto_config
+from app.infrastructure.aws.boto_factory import resolve_client
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
@@ -20,7 +19,7 @@ class Route53Service(metaclass=Singleton):
     Service class for managing DNS records using AWS Route53.
     """
 
-    route53_client: ClassVar[Route53Client] = boto3.client("route53", config=boto_config.CONFIG)  # type: ignore
+    route53_client: ClassVar[Route53Client] = resolve_client("route53")  # type: ignore
     cached_hosted_zones: dict[str, str] = {}
 
     def __init__(self):

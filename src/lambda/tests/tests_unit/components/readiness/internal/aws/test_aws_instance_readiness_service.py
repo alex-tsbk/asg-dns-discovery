@@ -6,8 +6,7 @@ from app.config.models.readiness_config import ReadinessConfig
 
 
 @pytest.fixture
-@patch("app.infrastructure.aws.services.ec2_service.Ec2Service.boto3.client")
-def ec2_service(patched_boto3_client):
+def ec2_service():
     return MagicMock()
 
 

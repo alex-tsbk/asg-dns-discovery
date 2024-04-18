@@ -1,4 +1,6 @@
-# Global Settings
+import os
+
+
 def pytest_configure(config):
     """
     Allow plugins and conftest files to perform initial configuration.
@@ -7,6 +9,20 @@ def pytest_configure(config):
 
     After that, the hook is called for other conftest files as they are imported.
     """
+
+
+def pytest_collection(session):
+    """
+    Called for performing the test collection.
+    """
+    os.environ["PYTEST_COLLECTION"] = "True"
+
+
+def pytest_unconfigure(config):
+    """
+    Called before test process is exited.
+    """
+    os.environ.pop("PYTEST_COLLECTION", None)
 
 
 def pytest_sessionstart(session):

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, Sequence
 
-import boto3
-from app.infrastructure.aws import boto_config
+from app.infrastructure.aws.boto_factory import resolve_client
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.singleton import Singleton
@@ -17,7 +16,7 @@ if TYPE_CHECKING:
 class CloudWatchService(metaclass=Singleton):
     """Service class for interacting with AWS CloudWatch."""
 
-    cloudwatch_client: ClassVar[CloudWatchClient] = boto3.client("cloudwatch", config=boto_config.CONFIG)  # type: ignore
+    cloudwatch_client: ClassVar[CloudWatchClient] = resolve_client("cloudwatch")  # type: ignore
 
     def __init__(self):
         self.logger = get_logger()

@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-import boto3
 from app.entities.envelope import Envelope
-from app.infrastructure.aws import boto_config
+from app.infrastructure.aws.boto_factory import resolve_client
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
@@ -21,7 +20,7 @@ class SqsService(metaclass=Singleton):
     Service class for enqueuing messages to AWS SQS.
     """
 
-    sqs_client: ClassVar[SQSClient] = boto3.client("sqs", config=boto_config.CONFIG)  # type: ignore
+    sqs_client: ClassVar[SQSClient] = resolve_client("sqs")  # type: ignore
 
     def __init__(self, endpoint: str):
         self.logger = get_logger()
@@ -36,12 +35,12 @@ class SqsService(metaclass=Singleton):
         """
         try:
             payload = message.to_dict()
+            self.logger.debug(f"Message payload: {to_json(payload)}")
             response = self.sqs_client.send_message(
                 QueueUrl=self.endpoint,
                 MessageBody=str(payload),
             )
             self.logger.debug(f"Enqueued message to SQS ('{self.endpoint}')")
-            self.logger.debug(f"Message payload: {to_json(payload)}")
             self.logger.debug(f"SQS response: {to_json(response)}")
             return response
         except ClientError as e:

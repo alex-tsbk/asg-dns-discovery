@@ -10,7 +10,7 @@ class MessageBrokerProvider(Enum):
     """DNS record provider"""
 
     # Relies on an external message broker provider (SQS)
-    EXTERNAL = "EXTERNAL"
+    SQS = "SQS"
     # Relies on an internal message broker provider (in-memory).
     # Do not use in production, as it is not scalable.
     INTERNAL = "INTERNAL"
@@ -26,7 +26,7 @@ class MessageBrokerConfig(DataclassBase):
     endpoint: str = field(default="")
 
     def __post_init__(self):
-        if self.provider == MessageBrokerProvider.EXTERNAL and not self.endpoint:
+        if self.provider == MessageBrokerProvider.SQS and not self.endpoint:
             raise ValueError("External message broker requires an endpoint")
 
     @override

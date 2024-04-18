@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Sequence
 
-import boto3
-from app.infrastructure.aws import boto_config
+from app.infrastructure.aws.boto_factory import resolve_client
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
@@ -18,7 +17,7 @@ if TYPE_CHECKING:
 class Ec2AutoScalingService(metaclass=Singleton):
     """Service class for interacting with AWS EC2 Auto-Scaling Groups."""
 
-    autoscaling_client: ClassVar[AutoScalingClient] = boto3.client("autoscaling", config=boto_config.CONFIG)  # type: ignore
+    autoscaling_client: ClassVar[AutoScalingClient] = resolve_client("autoscaling")  # type: ignore
 
     def __init__(self):
         self.logger = get_logger()
