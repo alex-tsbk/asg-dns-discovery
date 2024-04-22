@@ -33,8 +33,6 @@ data "aws_iam_policy_document" "dns_discovery_lambda_permissions" {
       "logs:PutRetentionPolicy"
     ]
     resources = [
-      "${aws_cloudwatch_log_group.dns_discovery_lambda_lifecycle_handler.arn}*",
-      "${aws_cloudwatch_log_group.dns_discovery_lambda_reconciliation.arn}*",
       "arn:${local.aws_partition}:logs:*:*:*"
     ]
   }
@@ -51,17 +49,6 @@ data "aws_iam_policy_document" "dns_discovery_lambda_permissions" {
   }
 
   statement {
-    sid    = "CompleteLifecycleAction"
-    effect = "Allow"
-    actions = [
-      "autoscaling:CompleteLifecycleAction",
-    ]
-    resources = [
-      for asg_name in local.asg_names : "arn:${local.aws_partition}:autoscaling:${local.aws_region}:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/${asg_name}"
-    ]
-  }
-
-  statement {
     sid    = "DescribeEc2"
     effect = "Allow"
     actions = [
@@ -72,29 +59,50 @@ data "aws_iam_policy_document" "dns_discovery_lambda_permissions" {
     resources = ["*"]
   }
 
-  statement {
-    sid    = "Route53"
-    effect = "Allow"
-    actions = [
-      "route53:ChangeResourceRecordSets",
-      "route53:ListResourceRecordSets",
-      "route53:GetHostedZone",
-      "route53:ListHostedZones",
-    ]
-    resources = [
-      for zone_id in local.hosted_zones_ids : "arn:${local.aws_partition}:route53:::hostedzone/${zone_id}"
-    ]
+  dynamic "statement" {
+    for_each = length(local.asg_names) > 0 ? [1] : []
+    content {
+      sid    = "CompleteLifecycleAction"
+      effect = "Allow"
+      actions = [
+        "autoscaling:CompleteLifecycleAction",
+      ]
+      resources = [
+        for asg_name in local.asg_names : "arn:${local.aws_partition}:autoscaling:${local.aws_region}:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/${asg_name}"
+      ]
+    }
   }
 
-  statement {
-    sid    = "Route53Change"
-    effect = "Allow"
-    actions = [
-      "route53:GetChange",
-    ]
-    resources = [
-      for zone_id in local.hosted_zones_ids : "arn:${local.aws_partition}:route53:::change/*"
-    ]
+  dynamic "statement" {
+    for_each = length(local.hosted_zones_ids) > 0 ? [1] : []
+    content {
+      sid    = "Route53"
+      effect = "Allow"
+      actions = [
+        "route53:ChangeResourceRecordSets",
+        "route53:ListResourceRecordSets",
+        "route53:GetHostedZone",
+        "route53:ListHostedZones",
+      ]
+      resources = [
+        for zone_id in local.hosted_zones_ids : "arn:${local.aws_partition}:route53:::hostedzone/${zone_id}"
+      ]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = length(local.hosted_zones_ids) > 0 ? [1] : []
+    content {
+      sid    = "Route53Change"
+      effect = "Allow"
+      actions = [
+        "route53:GetChange",
+      ]
+      resources = [
+        for zone_id in local.hosted_zones_ids : "arn:${local.aws_partition}:route53:::change/*"
+      ]
+    }
+
   }
 
   statement {
@@ -109,6 +117,22 @@ data "aws_iam_policy_document" "dns_discovery_lambda_permissions" {
     ]
     resources = [
       aws_dynamodb_table.dns_discovery_table.arn
+    ]
+  }
+
+  statement {
+    sid    = "SQS"
+    effect = "Allow"
+    actions = [
+      "sqs:SendMessage",
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes",
+      "sqs:GetQueueUrl",
+    ]
+    resources = [
+      aws_sqs_queue.reconciliation_queue.arn,
+      aws_sqs_queue.reconciliation_queue_deadletter.arn
     ]
   }
 

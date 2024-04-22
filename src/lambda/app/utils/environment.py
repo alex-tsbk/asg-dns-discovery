@@ -1,5 +1,7 @@
 import os
 
+from . import strings
+
 
 def try_get_value[T: (str, bool, int)](key: str, default: T) -> T:
     """Return the value of an environment variable or a default value if it is not set.
@@ -11,5 +13,7 @@ def try_get_value[T: (str, bool, int)](key: str, default: T) -> T:
     # for environment variables.
     result = os.environ.get(key, None)
     if result is not None:
+        if isinstance(default, bool):
+            return strings.alike(result, "true")
         return type(default)(result)
     return default

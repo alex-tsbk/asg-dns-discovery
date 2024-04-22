@@ -8,13 +8,13 @@ resource "aws_lambda_function" "dns_discovery_lambda_reconciliation" {
   role          = aws_iam_role.dns_discovery_lambda.arn
   handler       = "app.reconciler.lambda_handler"
   timeout       = 15 * 60 # 15 minutes - maximum allowed by AWS
-  description   = "ASG Service Discovery: Reconciles ASG configurations and ensures that DNS records are in sync (${var.environment} environment)."
+  description   = "SG DNS Discovery: ensures that DNS records are in sync with Instances in Scaling Groups."
   memory_size   = 128
 
   # Ensure log group is created prior to lambda
   depends_on = [aws_cloudwatch_log_group.dns_discovery_lambda_reconciliation]
 
-  source_code_hash = data.archive_file.dns_discovery_lambda_source.output_base64sha256
+  source_code_hash = data.archive_file.sg_dns_discovery_lambda_source.output_base64sha256
 
   runtime = local.lambda_runtime
 

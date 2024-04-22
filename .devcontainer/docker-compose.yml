@@ -1,0 +1,32 @@
+services:
+  terraform-aws-asg-dns-discovery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../..:/workspaces:cached
+    networks:
+      - local-dev-network
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+    user: root
+    environment:
+      # Specifying Moto configuration to force integration tests to use shared Moto server
+      # https://docs.getmoto.org/en/latest/docs/server_mode.html#use-servermode-using-the-decorators
+      - TEST_SERVER_MODE=true
+      - TEST_SERVER_MODE_ENDPOINT=http://moto-server:5000
+      - MOTO_CALL_RESET_API=false
+
+  moto-server:
+    image: motoserver/moto:latest
+    networks:
+      - local-dev-network
+    ports:
+      - "5051:5000"
+    environment:
+      - MOTO_PORT=5000
+      - MOTO_CALL_RESET_API=false
+
+networks:
+  local-dev-network:
+    external: false

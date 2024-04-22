@@ -3,8 +3,8 @@ from typing import Any, Callable
 from app.config.models.db_config import DbConfig
 from app.config.models.metrics_config import MetricsConfig
 from app.config.models.readiness_config import ReadinessConfig
-from app.config.models.reconciliation_config import ReconciliationConfig
-from app.utils import environment
+from app.config.models.reconciliation_config import MessageBrokerProvider, ReconciliationConfig
+from app.utils import enums, environment
 
 
 class EnvironmentConfigurationService:
@@ -24,7 +24,7 @@ class EnvironmentConfigurationService:
         """Returns readiness settings. These are used to determine if an instance is ready to serve traffic."""
 
         def resolver() -> ReadinessConfig:
-            enabled = environment.try_get_value("ec2_readiness_enabled", "true").lower() == "true"
+            enabled = environment.try_get_value("ec2_readiness_enabled", True)
             interval = environment.try_get_value("ec2_readiness_interval_seconds", 5)
             timeout = environment.try_get_value("ec2_readiness_timeout_seconds", 300)
             tag_key = environment.try_get_value("ec2_readiness_tag_key", "app:code-deploy:status")
@@ -62,12 +62,23 @@ class EnvironmentConfigurationService:
         """Returns reconciliation settings. These are used to determine if an instance is ready to serve traffic."""
 
         def resolver() -> ReconciliationConfig:
-            what_if = environment.try_get_value("reconciliation_what_if", "false").lower() == "true"
+            what_if = environment.try_get_value("reconciliation_what_if", False)
             max_concurrency = environment.try_get_value("reconciliation_max_concurrency", 1)
             scaling_group_valid_states = environment.try_get_value(
                 "reconciliation_scaling_group_valid_states", ""
             ).split(",")
-            return ReconciliationConfig(what_if, max_concurrency, scaling_group_valid_states)
+            message_broker = enums.to_enum(
+                environment.try_get_value("reconciliation_message_broker", ""),
+                default=MessageBrokerProvider.INTERNAL,
+            )
+            message_broker_url = environment.try_get_value("reconciliation_message_broker_url", "")
+            return ReconciliationConfig(
+                what_if,
+                max_concurrency,
+                scaling_group_valid_states,
+                message_broker,
+                message_broker_url,
+            )
 
         return self._cached("reconciliation_config", resolver)
 
@@ -76,10 +87,10 @@ class EnvironmentConfigurationService:
         """Returns metrics settings. These are used to determine if an instance is ready to serve traffic."""
 
         def resolver() -> MetricsConfig:
-            metrics_enabled = environment.try_get_value("monitoring_metrics_enabled", "false").lower() == "true"
+            metrics_enabled = environment.try_get_value("monitoring_metrics_enabled", False)
             metrics_provider = environment.try_get_value("monitoring_metrics_provider", "cloudwatch")
             metrics_namespace = environment.try_get_value("monitoring_metrics_namespace", "")
-            alarms_enabled = environment.try_get_value("monitoring_alarms_enabled", "false").lower() == "true"
+            alarms_enabled = environment.try_get_value("monitoring_alarms_enabled", False)
             alarms_notification_destination = environment.try_get_value(
                 "monitoring_alarms_notification_destination", ""
             )

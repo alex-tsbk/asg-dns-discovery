@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Self, override
 
-from app.utils import enums
+from app.utils import enums, strings
 from app.utils.dataclass import DataclassBase
 
 
@@ -72,7 +72,7 @@ class HealthCheckConfig(DataclassBase):
         }
         """
         return cls(
-            enabled=str(data.get("enabled", False)).lower() == "true",
+            enabled=strings.alike(data.get("enabled", ""), "true"),
             endpoint_source=data.get("endpoint_source", "ip:private"),
             path=data.get("path", ""),
             port=int(data.get("port", "")),

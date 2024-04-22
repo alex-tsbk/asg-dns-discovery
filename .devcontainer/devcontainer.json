@@ -1,13 +1,15 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-	"name": "Python 3.12",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+	"name": "Terraform AWS Auto Scaling Group DNS Discovery Environment",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "terraform-aws-asg-dns-discovery",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	"features": {
 		"ghcr.io/devcontainers-contrib/features/poetry:2": {},
 		"ghcr.io/devcontainers-contrib/features/black:2": {},
-		"ghcr.io/devcontainers/features/terraform:1": {}
+		"ghcr.io/devcontainers/features/terraform:1": {},
+		"ghcr.io/devcontainers/features/aws-cli:1": {}
 	},
 	"customizations": {
 		"vscode": {
@@ -33,8 +35,7 @@
 		// Create .venv in the project directory
 		"POETRY_VIRTUALENVS_IN_PROJECT": "true",
 		// This allows auto-imports to work correctly in the Python extension
-		"PYTHONPATH": "${workspaceFolder}/src/lambda"
+		"PYTHONPATH": "/workspaces/${localWorkspaceFolderBasename}/src/lambda"
 	},
-	"postStartCommand": "make setup",
-	"remoteUser": "root"
+	"postStartCommand": "make setup"
 }

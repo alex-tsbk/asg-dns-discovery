@@ -2,6 +2,8 @@ resource "aws_sns_topic" "asg_dns_discovery" {
   name = local.resource_prefix
 
   policy = data.aws_iam_policy_document.asg_dns_discovery.json
+
+  tags = local.tags
 }
 
 data "aws_iam_policy_document" "asg_dns_discovery" {

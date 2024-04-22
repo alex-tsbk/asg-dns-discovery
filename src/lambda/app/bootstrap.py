@@ -5,7 +5,8 @@ from importlib.machinery import ModuleSpec
 from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
 from app.utils.di import DIContainer, DILifetimeScope
-from context import RUNTIME_CONTEXT
+
+from .context import RUNTIME_CONTEXT
 
 
 def __build_di_container() -> DIContainer:

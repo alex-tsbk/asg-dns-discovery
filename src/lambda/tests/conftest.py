@@ -11,18 +11,10 @@ def pytest_configure(config):
     """
 
 
-def pytest_collection(session):
-    """
-    Called for performing the test collection.
-    """
-    os.environ["PYTEST_COLLECTION"] = "True"
-
-
 def pytest_unconfigure(config):
     """
     Called before test process is exited.
     """
-    os.environ.pop("PYTEST_COLLECTION", None)
 
 
 def pytest_sessionstart(session):

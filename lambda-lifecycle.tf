@@ -6,15 +6,15 @@ resource "aws_lambda_function" "dns_discovery_lambda_lifecycle_handler" {
   function_name = local.dns_discovery_lambda_lifecycle_handler_name
   filename      = local.lambda_code
   role          = aws_iam_role.dns_discovery_lambda.arn
-  handler       = "app.lifecycle.lambda_handler"
+  handler       = "app.main.event_request_handler"
   timeout       = var.lambda_settings.lifecycle_timeout_seconds
-  description   = "ASG Service Discovery: Maps IPs of instance in ASG to Route53 DNS records (${var.environment} environment)."
+  description   = "SG DNS Discovery: handles lifecycle events for Scaling Groups and updates tracked DNS records accordingly."
   memory_size   = 128
 
   # Ensure log group is created prior to lambda
   depends_on = [aws_cloudwatch_log_group.dns_discovery_lambda_lifecycle_handler]
 
-  source_code_hash = data.archive_file.dns_discovery_lambda_source.output_base64sha256
+  source_code_hash = data.archive_file.sg_dns_discovery_lambda_source.output_base64sha256
 
   runtime = local.lambda_runtime
 
@@ -37,5 +37,6 @@ resource "aws_cloudwatch_log_group" "dns_discovery_lambda_lifecycle_handler" {
   name = "/aws/lambda/${local.dns_discovery_lambda_lifecycle_handler_name}"
 
   retention_in_days = var.lambda_settings.log_retention_in_days
-}
 
+  tags = local.tags
+}

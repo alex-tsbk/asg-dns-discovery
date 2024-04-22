@@ -3,8 +3,8 @@ resource "aws_autoscaling_lifecycle_hook" "lch_ec2_register" {
 
   name                   = "${local.resource_prefix}-register"
   autoscaling_group_name = each.key
-  default_result         = "ABANDON"
-  heartbeat_timeout      = 10 * 60
+  default_result         = var.asg_lifecycle_hooks_settings.launch_default_result
+  heartbeat_timeout      = var.asg_lifecycle_hooks_settings.launch_timeout_seconds
   lifecycle_transition   = "autoscaling:EC2_INSTANCE_LAUNCHING"
 
   notification_target_arn = aws_sns_topic.asg_dns_discovery.arn
@@ -16,8 +16,8 @@ resource "aws_autoscaling_lifecycle_hook" "lch_ec2_drain" {
 
   name                   = "${local.resource_prefix}-drain"
   autoscaling_group_name = each.key
-  default_result         = "CONTINUE"
-  heartbeat_timeout      = 2 * 60
+  default_result         = var.asg_lifecycle_hooks_settings.drain_default_result
+  heartbeat_timeout      = var.asg_lifecycle_hooks_settings.drain_timeout_seconds
   lifecycle_transition   = "autoscaling:EC2_INSTANCE_TERMINATING"
 
   notification_target_arn = aws_sns_topic.asg_dns_discovery.arn

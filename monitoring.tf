@@ -1,5 +1,9 @@
+locals {
+  should_use_cloudwatch_logs = var.monitoring.metrics_enabled && var.monitoring.metrics_provider == "cloudwatch"
+}
+
 resource "aws_iam_policy" "cloudwatch_custom_metrics" {
-  count = var.monitoring.cloudwatch_metrics_enabled ? 1 : 0
+  count = local.should_use_cloudwatch_logs ? 1 : 0
   name  = "${local.resource_prefix}-push-custom-metrics"
 
   policy = <<EOF
@@ -12,7 +16,7 @@ resource "aws_iam_policy" "cloudwatch_custom_metrics" {
       "Resource": "*",
       "Condition": {
           "StringEquals": {
-            "cloudwatch:namespace": "${var.monitoring.cloudwatch_metrics_namespace}"
+            "cloudwatch:namespace": "${var.monitoring.metrics_namespace}"
           }
       }
     }
@@ -23,7 +27,7 @@ EOF
 
 # Lambda(s)
 resource "aws_iam_role_policy_attachment" "cloudwatch_custom_metrics" {
-  count = var.monitoring.cloudwatch_metrics_enabled ? 1 : 0
+  count = local.should_use_cloudwatch_logs ? 1 : 0
 
   role       = aws_iam_role.dns_discovery_lambda.id
   policy_arn = aws_iam_policy.cloudwatch_custom_metrics[count.index].arn

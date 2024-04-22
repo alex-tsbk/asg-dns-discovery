@@ -1,9 +1,11 @@
 from typing import Any
 
 from app.context import RUNTIME_CONTEXT
+from app.handlers.handler_protocol import HandlerProtocol
+from app.utils.di import DIContainer
 from app.utils.exceptions import BusinessException
-from bootstrap import bootstrap
-from handlers.handler_protocol import HandlerProtocol
+
+from .bootstrap import bootstrap
 
 
 def event_request_handler(*args: Any, **kwargs: Any) -> Any:
@@ -15,7 +17,7 @@ def event_request_handler(*args: Any, **kwargs: Any) -> Any:
         Any: Response from the handler
     """
     # Bootstrap the application
-    di_container = bootstrap()
+    di_container: DIContainer = bootstrap()
 
     # Placeholder for the handler that will be loaded based on the cloud provider
     handler: HandlerProtocol | None = None
@@ -42,4 +44,3 @@ def reconciliation_handler(*args: Any, **kwargs: Any) -> Any:
         Any: Response from the handler
     """
     bootstrap()
-    pass

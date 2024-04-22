@@ -1,14 +1,14 @@
-from typing import Any, Optional
+from typing import Optional
 
 import boto3
-from app.utils import environment
+from boto3.resources.base import ServiceResource
+from botocore.client import BaseClient
 from botocore.config import Config
-from botocore.stub import Stubber
 
 from .boto_config import CONFIG
 
 
-def resolve_client(client_name: str, config: Optional[Config] = None) -> Any:
+def resolve_client(client_name: str, config: Optional[Config] = None) -> BaseClient:
     """Returns a Boto3 client for the given service name.
 
     Args:
@@ -17,7 +17,7 @@ def resolve_client(client_name: str, config: Optional[Config] = None) -> Any:
 
     Remarks:
         This function is used to abstract the creation of Boto3 clients,
-        so that it can be easily mocked in unit tests.
+        so that it can be stubbed in tests.
 
     Returns:
         Any: Boto3 client
@@ -25,11 +25,24 @@ def resolve_client(client_name: str, config: Optional[Config] = None) -> Any:
     if config is None:
         config = CONFIG
 
-    # If running in test environment, return a stub.
-    if (
-        environment.try_get_value("PYTEST_CURRENT_TEST", "") != ""
-        or environment.try_get_value("PYTEST_COLLECTION", False) is True
-    ):
-        return Stubber(boto3.client(client_name, region_name="no-region"))  # type: ignore
-
     return boto3.client(client_name, config=config)  # type: ignore
+
+
+def resolve_resource(resource_name: str, config: Optional[Config] = None) -> ServiceResource:
+    """Returns a Boto3 resource for the given service name.
+
+    Args:
+        resource_name (str): Name of the Boto3 resource to create
+        config (Config, optional): Boto3 configuration. Defaults to None.
+
+    Remarks:
+        This function is used to abstract the creation of Boto3 resources,
+        so that it can be easily mocked in unit tests.
+
+    Returns:
+        Any: Boto3 resource
+    """
+    if config is None:
+        config = CONFIG
+
+    return boto3.resource(resource_name, config=config)  # type: ignore

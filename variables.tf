@@ -6,7 +6,7 @@ variable "environment" {
 variable "resource_suffix" {
   description = "Value to be appended to the resource names."
   type        = string
-  default     = "asg-dns-discovery"
+  default     = "sg-dns-discovery"
 }
 
 variable "tags" {
@@ -74,7 +74,7 @@ variable "records" {
       # SINGLE_LATEST:
       #   Single value resolve from latest Instance used as record value.
       # Value is resolved to the most-recently-launched Instance in Scaling Group
-      # that is considered 'ready' and 'healthy'. Use-case example - blue/green deployments.
+      # that is considered 'ready' and 'healthy'.
       # Example:
       #   * domain.com resolves to a single IP address, thus having a single A record with single value:
       #     ;; subdomain.example.com A 12.82.13.83
@@ -175,10 +175,11 @@ variable "records" {
   default = []
 }
 
-# Please note, it's responsibility of your application to set the tag on the instance
-# to the value specified here once instance is fully bootstrapped with your application/custom scripts.
+# IMportant: it is responsibility of your application to set the tag on the instance
+# to the value specified here once instance is fully bootstrapped with your application/deploy scripts.
+# You can override this behavior on per-ASG basis by specifying `readiness` object in the `records` list.
 variable "instance_readiness_default" {
-  description = "Default configuration for readiness check. DNS discovery will not proceed until readiness criteria are met."
+  description = "Default configuration for readiness check. If enabled, SG DNS discovery will not proceed until readiness criteria are met."
 
   type = object({
     # If true, the readiness check will be enabled. Disabled by default.
@@ -212,16 +213,17 @@ variable "reconciliation" {
     # * AWS: https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-lifecycle.html
     scaling_group_valid_states = optional(list(string), ["Pending", "Pending:Wait", "Pending:Proceed", "InService"])
 
-    # "What If" mode. When `true`, the reconciliation will only log what it would do, but not actually do it.
+    # "What If" mode. When `true`, the reconciliation will only log what it would do, without making any changes.
     # It is recommended that you run application in this mode first to see what would happen,
-    # and ensure changes created are as what are expected.
+    # and ensure changes proposed are as what you would expected.
     what_if = optional(bool, false)
 
-    # Maximum number of concurrent reconciliations. Default is 1.
-    # Please note, depending on your ASG sizes and their count, you may want to adjust this number.
-    # Math here is simple - the less EC2s you have, the higher up this **can** go (less resources - less boto3 throttling).
-    # Setting this to more than number of ASGs being managed will not yield any boost.
-    max_concurrency = optional(number, 1)
+    # Maximum number of concurrent reconciliations. Default is 2.
+    # AWS:
+    #   In AWS this is maximum concurrency for Amazon SQS event sources. Value must be between 2 and 1000.
+    #   Setting this to more than number of ASGs being managed will not have any effect.
+    #   Read more: https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html#events-sqs-max-concurrency
+    max_concurrency = optional(number, 2)
 
     # ###
     # INFRASTRUCTURE SETTINGS
@@ -235,13 +237,31 @@ variable "reconciliation" {
     # Interval in minutes between reconciliation runs. Default is 5 minutes.
     # In AWS can't go below once per minute.
     schedule_interval_minutes = optional(number, 5)
+
+    # ###
+    # MESSAGE BROKER SETTINGS
+    # ###
+
+    # Configuration for message broker integration.
+    # Using message broker allows running scaling group reconciliations in parallel,
+    # handling single Scaling Group reconciliation per lambda invocation.
+    # Supported values:
+    # * 'sqs' - AWS SQS
+    # * 'internal' - In-Memory message broker (for testing purposes/localhost environments)
+    message_broker = optional(string, "sqs")
+
+    # Message broker queue URL.
+    # When using SQS, leave blank to use the default queue created by the module.
+    message_broker_url = optional(string, "")
   })
 
   default = {
     what_if                   = false
-    max_concurrency           = 1
-    schedule_enabled          = false
+    max_concurrency           = 2
+    schedule_enabled          = true
     schedule_interval_minutes = 5
+    message_broker            = "sqs"
+    message_broker_url        = ""
   }
 }
 
@@ -254,12 +274,19 @@ variable "monitoring" {
     # Metrics provider
     metrics_provider = optional(string, "cloudwatch")
     # Metrics namespace
-    metrics_namespace = string
+    metrics_namespace = optional(string, "sg-dns-discovery")
     # When set to true - enables sending alarms to specified destination. Default is false.
     alarms_enabled = optional(bool, false)
     # SNS topic ARN to send alarms to.
-    alarms_notification_destination = string
+    alarms_notification_destination = optional(string, "")
   })
+
+  default = {
+    metrics_enabled   = true
+    metrics_provider  = "cloudwatch"
+    metrics_namespace = "sg-dns-discovery"
+    alarms_enabled    = false
+  }
 
 }
 
@@ -271,27 +298,49 @@ variable "lambda_settings" {
   description = "Lambda configuration."
 
   type = object({
-    # Runtime version
+    # Runtime version. Requires Python 3.12 or higher.
     python_runtime = optional(string, "python3.12")
     # Timeout for the lambda function. Default is 15 minutes.
-    lifecycle_timeout_seconds = optional(number, 15 * local.MINUTE)
+    lifecycle_timeout_seconds = optional(number, 15 * 60)
     # Subnets where the lambda will be deployed.
     # Must be set if the lambda needs to access resources in the VPC - health checks on private IPs.
     subnets         = optional(list(string), [])
     security_groups = optional(list(string), [])
     # Log settings for the lambda runtime
-    log_identifier        = optional(string, "asg-dns-discovery")
+    log_identifier        = optional(string, "sg-dns-discovery")
     log_level             = optional(string, "INFO")
     log_retention_in_days = optional(number, 90)
   })
 
   default = {
-    python_runtime        = "python3.12"
-    timeout_seconds       = 15 * local.MINUTE
-    subnets               = []
-    security_groups       = []
-    log_identifier        = "asg-dns-discovery"
-    log_level             = "INFO"
-    log_retention_in_days = 90
+    python_runtime            = "python3.12"
+    lifecycle_timeout_seconds = 15 * 60
+    subnets                   = []
+    security_groups           = []
+    log_identifier            = "sg-dns-discovery"
+    log_level                 = "INFO"
+    log_retention_in_days     = 90
+  }
+}
+
+variable "asg_lifecycle_hooks_settings" {
+  description = "Configuration for ASG lifecycle hooks."
+
+  type = object({
+    # Timeout for the lifecycle hook. Default is 10 minutes.
+    launch_timeout_seconds = optional(number, 10 * 60)
+    # Default result for the lifecycle hook. Default is 'CONTINUE'.
+    launch_default_result = optional(string, "CONTINUE")
+    # Timeout for the drain lifecycle hook. Default is 2 minutes.
+    drain_timeout_seconds = optional(number, 2 * 60)
+    # Default result for the drain lifecycle hook. Default is 'CONTINUE'.
+    drain_default_result = optional(string, "CONTINUE")
+  })
+
+  default = {
+    launch_timeout_seconds = 10 * 60
+    launch_default_result  = "CONTINUE"
+    drain_timeout_seconds  = 2 * 60
+    drain_default_result   = "CONTINUE"
   }
 }
