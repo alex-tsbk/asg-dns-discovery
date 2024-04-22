@@ -50,10 +50,20 @@ tests_unit:
 
 .PHONY: tests_integration
 tests_integration:
-	$(MAKE) tf-setup
+	@echo "Setting up terraform for local testing... Please wait..."
+# Clean up any existing terraform state and setup a new one
+	curl -X POST $$TEST_SERVER_MODE_ENDPOINT/moto-api/reset
+	rm -rf ./moto.* > /dev/null
+# Copy the moto test files to the root directory
+	cp -r ./tests/moto* ./ > /dev/null
+	$(MAKE) tf-setup > /dev/null
 	$(MAKE) tf-apply
 	@echo "Running integration tests..."
-	$(MAKE) tf-destroy
+# TODO: Add integration tests here
+	@echo "Tearing down local terraform stack... Please wait..."
+	$(MAKE) tf-destroy > /dev/null
+	rm -rf ./moto.* > /dev/null
+	@echo "Finished integration tests."
 
 .PHONY: clean
 clean:

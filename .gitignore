@@ -170,6 +170,9 @@ cython_debug/
 *.tfstate
 *.tfstate.backup
 
+# Tests purposes
+/moto.tf
+/moto.tfvars
 
 # Artifacts
 lambda.zip
