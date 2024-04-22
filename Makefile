@@ -6,6 +6,7 @@ ROOT_DIR:=$(realpath $(shell dirname $(firstword $(MAKEFILE_LIST))))
 
 setup: venv install
 test: tests_unit tests_integration
+reboot: clean setup
 
 .PHONY: venv
 venv:
@@ -69,3 +70,7 @@ tests_integration:
 clean:
 	rm -rf .pytest_cache/
 	rm -rf $(VENV)/
+	rm -rf .terraform/
+	rm -rf ./terraform.*
+	rm -rf ./.terraform.*
+	rm -rf ./moto.*
