@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, Optional
 
 from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.infrastructure.aws.boto_factory import resolve_resource
@@ -24,7 +24,7 @@ class DynamoDbTableRepository(DatabaseRepositoryInterface):
     and allows to mock the DynamoDB table in unit tests.
     """
 
-    dynamodb_resource: ClassVar[DynamoDBServiceResource] = resolve_resource("dynamodb")  # type: ignore
+    dynamodb_resource: Optional[DynamoDBServiceResource] = None
 
     def __init__(self, table_name: str):
         """Default ctor.
@@ -34,7 +34,10 @@ class DynamoDbTableRepository(DatabaseRepositoryInterface):
         """
         self.logger = get_logger()
         self.table_name: str = table_name
-        self.table: Table = self.dynamodb_resource.Table(table_name)
+        # Lazy load the DynamoDB resource
+        if not self.dynamodb_resource:
+            self.dynamodb_resource = resolve_resource("dynamodb")  # type: ignore
+        self.table: Table = self.dynamodb_resource.Table(table_name)  # type: ignore
 
     def get(self, key: str) -> dict[str, Any]:
         """Get item from DynamoDB table.

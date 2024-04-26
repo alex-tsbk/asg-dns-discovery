@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 from app.infrastructure.aws import boto_factory
 from app.utils.exceptions import CloudProviderException
@@ -17,10 +17,14 @@ if TYPE_CHECKING:
 class Ec2Service(metaclass=Singleton):
     """Service class for interacting with EC2."""
 
-    ec2_client: ClassVar[EC2Client] = boto_factory.resolve_client("ec2")  # type: ignore
+    ec2_client: Optional[EC2Client] = None
 
     def __init__(self):
         self.logger = get_logger()
+        # Lazy load the EC2 client
+        if not self.ec2_client:
+            self.ec2_client = boto_factory.resolve_client("ec2")  # type: ignore
+
         self.ec2_describe_instances_paginator: DescribeInstancesPaginator = self.ec2_client.get_paginator(
             "describe_instances"
         )  # type: ignore

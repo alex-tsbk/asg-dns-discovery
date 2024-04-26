@@ -10,18 +10,18 @@ provider "aws" {
   s3_use_path_style           = true
 
   endpoints {
-
-    lambda      = "http://moto-server:5000"
-    dynamodb    = "http://moto-server:5000"
-    sns         = "http://moto-server:5000"
-    sqs         = "http://moto-server:5000"
-    route53     = "http://moto-server:5000"
-    cloudwatch  = "http://moto-server:5000"
-    eventbridge = "http://moto-server:5000"
-    sts         = "http://moto-server:5000"
-    iam         = "http://moto-server:5000"
-    ec2         = "http://moto-server:5000"
-    autoscaling = "http://moto-server:5000"
-    logs        = "http://moto-server:5000"
+    # Note - port must match $MOTO_PORT environment variable set in the Makefile
+    lambda      = "http://localhost:5000"
+    dynamodb    = "http://localhost:5000"
+    sns         = "http://localhost:5000"
+    sqs         = "http://localhost:5000"
+    route53     = "http://localhost:5000"
+    cloudwatch  = "http://localhost:5000"
+    eventbridge = "http://localhost:5000"
+    sts         = "http://localhost:5000"
+    iam         = "http://localhost:5000"
+    ec2         = "http://localhost:5000"
+    autoscaling = "http://localhost:5000"
+    logs        = "http://localhost:5000"
   }
 }
