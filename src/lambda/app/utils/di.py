@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from enum import Enum
 from inspect import signature
 from typing import Annotated, Any, Hashable, Type
@@ -109,7 +107,7 @@ class DIContainer:
         interface: Type[Any],
         implementation: Type[Any],
         name: str = "",
-        lifetime: DILifetimeScope = DILifetimeScope.TRANSIENT,
+        lifetime: DILifetimeScope = DILifetimeScope.SCOPED,
         overridable: bool = True,
     ):
         """Registers a an interface with an implementation in the container.
@@ -118,7 +116,7 @@ class DIContainer:
             interface (Type): Type of the interface to register.
             implementation (Type): Type of the implementation to register. Will be constructed when resolved.
             name (str, optional): Name of the implementation, if need to support multiple. Defaults to None.
-            lifetime (DILifetimeScope, optional): Lifetime scope of the implementation. Defaults to DILifetimeScope.TRANSIENT.
+            lifetime (DILifetimeScope, optional): Lifetime scope of the implementation. Defaults to DILifetimeScope.SCOPED.
                 TRANSIENT - new instance will be created every time it's resolved.
                 SCOPED - single instance will be created and reused for the lifetime of the container.
             overridable (bool, optional): When set to True, allows overriding existing implementation. Defaults to True.
@@ -138,6 +136,20 @@ class DIContainer:
             self._non_overridable_services[key] = True
         # Register service
         self._services[key] = (implementation, lifetime.value)
+
+    def register_as_self(
+        self, implementation: Type[Any], name: str = "", lifetime: DILifetimeScope = DILifetimeScope.SCOPED
+    ):
+        """Registers an implementation as itself in the container.
+
+        Args:
+            implementation (Type): Type of the implementation to register.
+            name (str, optional): Name of the implementation, if need to support multiple. Defaults to None.
+            lifetime (DILifetimeScope, optional): Lifetime scope of the implementation. Defaults to DILifetimeScope.SCOPED.
+                TRANSIENT - new instance will be created every time it's resolved.
+                SCOPED - single instance will be created and reused for the lifetime of the container.
+        """
+        self.register(implementation, implementation, name, lifetime)
 
     def register_instance(self, instance: Any, name: str = "", allow_override: bool = False):
         """Registers an instance in the container.

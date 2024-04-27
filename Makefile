@@ -76,7 +76,7 @@ tests_terraform:
 	@cp -r ./tests/moto* ./ > /dev/null
 	@$(MAKE) tf-setup
 	@$(MAKE) tf-apply
-# TODO: Run tests to ensure that resources are there
+# TODO: Run tests to ensure that required resources are there, can do by inspecting state file
 # No errors, proceed with tear-down
 	@echo "** Tearing down local terraform stack... Please wait..."
 	$(MAKE) tf-destroy

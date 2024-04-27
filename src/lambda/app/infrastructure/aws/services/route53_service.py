@@ -1,12 +1,9 @@
-from __future__ import annotations
+from typing import TYPE_CHECKING, Optional
 
-from typing import TYPE_CHECKING, ClassVar
-
-from app.infrastructure.aws.boto_factory import resolve_client
+from app.infrastructure.aws import boto_factory
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
-from app.utils.singleton import Singleton
 from botocore.exceptions import ClientError
 
 if TYPE_CHECKING:
@@ -14,16 +11,18 @@ if TYPE_CHECKING:
     from mypy_boto3_route53.type_defs import ChangeBatchTypeDef, ResourceRecordSetTypeDef
 
 
-class Route53Service(metaclass=Singleton):
+class Route53Service:
     """
     Service class for managing DNS records using AWS Route53.
     """
 
-    route53_client: ClassVar[Route53Client] = resolve_client("route53")  # type: ignore
+    route53_client: Optional["Route53Client"] = None
     cached_hosted_zones: dict[str, str] = {}
 
     def __init__(self):
         self.logger = get_logger()
+        if not self.route53_client:
+            self.route53_client = boto_factory.resolve_client("route53")  # type: ignore
 
     def get_hosted_zone_name(self, hosted_zone_id: str) -> str:
         """Get hosted zone name by hosted zone ID.
@@ -46,7 +45,7 @@ class Route53Service(metaclass=Singleton):
             message = f"Error getting hosted zone name: {str(e)}"
             raise CloudProviderException(e, message)
 
-    def read_record(self, hosted_zone_id: str, record_name: str, record_type: str) -> ResourceRecordSetTypeDef | None:
+    def read_record(self, hosted_zone_id: str, record_name: str, record_type: str) -> "ResourceRecordSetTypeDef | None":
         """Get information about a specific record.
 
         For more information please visit:
@@ -68,7 +67,7 @@ class Route53Service(metaclass=Singleton):
             message = f"Error reading record: {str(e)}"
             raise CloudProviderException(e, message)
 
-    def change_resource_record_sets(self, hosted_zone_id: str, change: ChangeBatchTypeDef) -> bool:
+    def change_resource_record_sets(self, hosted_zone_id: str, change: "ChangeBatchTypeDef") -> bool:
         """Create, change, or delete a resource record set.
 
         For more information please visit:

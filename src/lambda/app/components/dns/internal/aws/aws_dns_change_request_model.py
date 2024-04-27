@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Self, override
@@ -21,14 +19,14 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
     """Model for AWS Route53 change request."""
 
     # Private attributes
-    _change: ChangeTypeDef = field(init=False, repr=False)
+    _change: "ChangeTypeDef" = field(init=False, repr=False)
 
     def __post_init__(self):
         """Need to call the parent's post-init method explicitly."""
         return super().__post_init__()
 
     @override
-    def get_change(self) -> ChangeBatchTypeDef:
+    def get_change(self) -> "ChangeBatchTypeDef":
         """Returns a fully-constructed change batch to update the IPs in the DNS record set for Route53.
 
         Args:
@@ -80,13 +78,13 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
                 )
         return self
 
-    def _build_A_record_change(self) -> ChangeTypeDef:
+    def _build_A_record_change(self) -> "ChangeTypeDef":
         """Build an A record change.
 
         Returns:
             dict: The A record change.
         """
-        change: ChangeTypeDef = {
+        change: "ChangeTypeDef" = {
             "Action": self._get_route53_change_action_name(self.action),
             "ResourceRecordSet": {
                 "Name": self.record_name,
@@ -97,13 +95,13 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
         }
         return change
 
-    def _build_CNAME_record_change(self) -> ChangeTypeDef:
+    def _build_CNAME_record_change(self) -> "ChangeTypeDef":
         """Build a CNAME record change.
 
         Returns:
             dict: The CNAME record change.
         """
-        change: ChangeTypeDef = {
+        change: "ChangeTypeDef" = {
             "Action": self._get_route53_change_action_name(self.action),
             "ResourceRecordSet": {
                 "Name": self.record_name,
@@ -114,13 +112,13 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
         }
         return change
 
-    def _build_SRV_record_change(self) -> ChangeTypeDef:
+    def _build_SRV_record_change(self) -> "ChangeTypeDef":
         """Build an SRV record change.
 
         Returns:
             dict: The SRV record change.
         """
-        change: ChangeTypeDef = {
+        change: "ChangeTypeDef" = {
             "Action": self._get_route53_change_action_name(self.action),
             "ResourceRecordSet": {
                 "Name": self.record_name,
@@ -134,13 +132,13 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
         }
         return change
 
-    def _build_TXT_record_change(self) -> ChangeTypeDef:
+    def _build_TXT_record_change(self) -> "ChangeTypeDef":
         """Build a TXT record change.
 
         Returns:
             dict: The TXT record change.
         """
-        change: ChangeTypeDef = {
+        change: "ChangeTypeDef" = {
             "Action": self._get_route53_change_action_name(self.action),
             "ResourceRecordSet": {
                 "Name": self.record_name,
@@ -152,7 +150,7 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
         return change
 
     @staticmethod
-    def _get_route53_change_action_name(action: DnsChangeRequestAction) -> ChangeActionType:
+    def _get_route53_change_action_name(action: DnsChangeRequestAction) -> "ChangeActionType":
         """Get Route53 change action.
 
         Args:

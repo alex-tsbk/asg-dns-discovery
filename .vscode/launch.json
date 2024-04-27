@@ -1,0 +1,44 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Scaling Group Lifecycle Event Handler (AWS)
+            "name": "AWS: SG LCH",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "debug.debug_main",
+            "args": [
+                "--cloud-provider",
+                "aws",
+                "--event-family",
+                "asg-lifecycle",
+                "--event-name",
+                "ec2_instance_terminating",
+                "--event-wrapper-name",
+                "sns-wrapper"
+            ],
+            "cwd": "${workspaceFolder}/src/lambda",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                // AWS Credentials Mock
+                "AWS_DEFAULT_REGION": "us-east-1",
+                "AWS_ACCESS_KEY_ID": "testing",
+                "AWS_SECRET_ACCESS_KEY": "testing",
+                "AWS_SECURITY_TOKEN": "testing",
+                "AWS_SESSION_TOKEN": "testing",
+                // Readiness check
+                // Configuration for database. Used for distributed locking and retrieval of configuration items.
+                "cloud_provider": "aws",
+                "db_provider": "dynamodb",
+                "db_table_name": "asg_dns_discovery",
+                "db_config_iac_item_key_id": "sg-dns-discovery-iac-config",
+                "db_config_external_item_key_id": "sg-dns-discovery-external-config"
+            }
+        }
+    ],
+    "inputs": []
+}

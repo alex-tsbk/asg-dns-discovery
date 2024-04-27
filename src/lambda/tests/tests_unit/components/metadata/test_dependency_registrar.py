@@ -9,8 +9,6 @@ from app.utils.di import DILifetimeScope
 def test_register_services():
     di_container = MagicMock()
 
-    register_services(di_container, MagicMock())
+    register_services(di_container)
 
-    di_container.register.assert_any_call(
-        InstanceMetadataInterface, InstanceMetadataService, lifetime=DILifetimeScope.SCOPED
-    )
+    di_container.register.assert_any_call(InstanceMetadataInterface, InstanceMetadataService)

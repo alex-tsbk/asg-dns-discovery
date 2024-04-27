@@ -1,0 +1,13 @@
+{
+    "Origin": "AutoScalingGroup",
+    "LifecycleHookName": "dev-sg-dns-discovery-drain",
+    "Destination": "EC2",
+    "AccountId": "123456789012",
+    "RequestId": "f02639a5-62b9-0772-d50e-09647ae07b49",
+    "LifecycleTransition": "autoscaling:EC2_INSTANCE_TERMINATING",
+    "AutoScalingGroupName": "example-asg",
+    "Service": "AWS Auto Scaling",
+    "Time": "2024-03-23T03:26:43.904Z",
+    "EC2InstanceId": "i-05629ab7d9287e205",
+    "LifecycleActionToken": "465e0162-e6af-4786-b4e8-bb544ae58790"
+}

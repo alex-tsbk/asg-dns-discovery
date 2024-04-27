@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
@@ -109,7 +107,7 @@ class AwsDnsManagementService(DnsManagementInterface):
         return record_name
 
     def _handle_launching(
-        self, dns_change_command: DnsChangeCommand, record: ResourceRecordSetTypeDef
+        self, dns_change_command: DnsChangeCommand, record: "ResourceRecordSetTypeDef"
     ) -> DnsChangeRequestModel:
         """Handle the launching lifecycle event.
 
@@ -159,7 +157,7 @@ class AwsDnsManagementService(DnsManagementInterface):
         return response
 
     def _handle_draining(
-        self, dns_change_command: DnsChangeCommand, record: ResourceRecordSetTypeDef
+        self, dns_change_command: DnsChangeCommand, record: "ResourceRecordSetTypeDef"
     ) -> DnsChangeRequestModel:
         """
         Handle the draining lifecycle event.
@@ -194,7 +192,7 @@ class AwsDnsManagementService(DnsManagementInterface):
         return response
 
     def _handle_reconciliation(
-        self, dns_change_command: DnsChangeCommand, record: ResourceRecordSetTypeDef
+        self, dns_change_command: DnsChangeCommand, record: "ResourceRecordSetTypeDef"
     ) -> DnsChangeRequestModel:
         """Handle the reconciliation lifecycle event.
 
@@ -275,7 +273,7 @@ class AwsDnsManagementService(DnsManagementInterface):
         return model
 
     @staticmethod
-    def _extract_values_from_route53_record(record: ResourceRecordSetTypeDef) -> list[str]:
+    def _extract_values_from_route53_record(record: "ResourceRecordSetTypeDef") -> list[str]:
         """Extract values from Route53 record DNS record.
 
         Returns:

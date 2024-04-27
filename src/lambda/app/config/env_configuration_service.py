@@ -10,13 +10,14 @@ from app.utils import enums, environment
 class EnvironmentConfigurationService:
     """Service class for resolving application configuration from environment variables"""
 
-    def __init__(self, use_cache: bool = True):
+    def __init__(self):
         """Initializes the service
 
         Args:
             use_cache (bool, optional): Whether to use cache. Defaults to True.
         """
-        self._use_cache = use_cache
+        # TODO: Implement 'CachedEnvironmentConfigurationService' class instead and wrap this one
+        self._use_cache = False
         self._cache: dict[str, Any] = {}
 
     @property

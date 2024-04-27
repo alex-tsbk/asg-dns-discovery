@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any
 
 from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface

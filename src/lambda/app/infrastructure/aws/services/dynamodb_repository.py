@@ -1,9 +1,8 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, Optional
 
 from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
-from app.infrastructure.aws.boto_factory import resolve_resource
+from app.config.env_configuration_service import EnvironmentConfigurationService
+from app.infrastructure.aws import boto_factory
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
@@ -24,20 +23,20 @@ class DynamoDbTableRepository(DatabaseRepositoryInterface):
     and allows to mock the DynamoDB table in unit tests.
     """
 
-    dynamodb_resource: Optional[DynamoDBServiceResource] = None
+    dynamodb_resource: Optional["DynamoDBServiceResource"] = None
 
-    def __init__(self, table_name: str):
+    def __init__(self, environment_configuration_service: EnvironmentConfigurationService):
         """Default ctor.
 
         Args:
             table_name (str): Name of the DynamoDB table to interact with.
         """
         self.logger = get_logger()
-        self.table_name: str = table_name
+        self.table_name: str = environment_configuration_service.db_config.table_name
         # Lazy load the DynamoDB resource
         if not self.dynamodb_resource:
-            self.dynamodb_resource = resolve_resource("dynamodb")  # type: ignore
-        self.table: Table = self.dynamodb_resource.Table(table_name)  # type: ignore
+            self.dynamodb_resource = boto_factory.resolve_resource("dynamodb")  # type: ignore
+        self.table: "Table" = self.dynamodb_resource.Table(self.table_name)  # type: ignore
 
     def get(self, key: str) -> dict[str, Any]:
         """Get item from DynamoDB table.
@@ -50,7 +49,7 @@ class DynamoDbTableRepository(DatabaseRepositoryInterface):
         """
         try:
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/table/get_item.html
-            response: GetItemOutputTableTypeDef = self.table.get_item(Key={"id": key}, ConsistentRead=True)
+            response: "GetItemOutputTableTypeDef" = self.table.get_item(Key={"id": key}, ConsistentRead=True)
             self.logger.debug(f"{self.__class__.__name__} get_item response: {to_json(response)}")
             return response.get("Item", {})
         except ClientError as e:
@@ -91,7 +90,7 @@ class DynamoDbTableRepository(DatabaseRepositoryInterface):
         try:
             table_item = {"id": key} | item
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/table/put_item.html
-            response: PutItemOutputTableTypeDef = self.table.put_item(Item=table_item)
+            response: "PutItemOutputTableTypeDef" = self.table.put_item(Item=table_item)
             self.logger.debug(f"{self.__class__.__name__} put_item response: {to_json(response)}")
             return item
         except ClientError as e:
@@ -108,7 +107,7 @@ class DynamoDbTableRepository(DatabaseRepositoryInterface):
         """
         try:
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/table/delete_item.html
-            response: DeleteItemOutputTableTypeDef = self.table.delete_item(Key={"id": key})
+            response: "DeleteItemOutputTableTypeDef" = self.table.delete_item(Key={"id": key})
             self.logger.debug(f"{self.__class__.__name__} delete_item response: {to_json(response)}")
             return True
         except ClientError as e:

@@ -22,8 +22,6 @@ from app.utils.di import DILifetimeScope
 def test_register_services_when_running_on_aws(aws_runtime):
     di_container = MagicMock()
 
-    register_services(di_container, MagicMock())
+    register_services(di_container)
 
-    di_container.register.assert_any_call(
-        DnsManagementInterface, AwsDnsManagementService, name="route53", lifetime=DILifetimeScope.SCOPED
-    )
+    di_container.register.assert_any_call(DnsManagementInterface, AwsDnsManagementService, name="route53")

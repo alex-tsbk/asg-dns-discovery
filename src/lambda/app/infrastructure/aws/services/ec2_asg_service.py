@@ -1,12 +1,9 @@
-from __future__ import annotations
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Sequence
 
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Sequence
-
-from app.infrastructure.aws.boto_factory import resolve_client
+from app.infrastructure.aws import boto_factory
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
-from app.utils.singleton import Singleton
 from botocore.exceptions import ClientError
 
 if TYPE_CHECKING:
@@ -14,20 +11,22 @@ if TYPE_CHECKING:
     from mypy_boto3_autoscaling.type_defs import FilterTypeDef, InstanceTypeDef
 
 
-class Ec2AutoScalingService(metaclass=Singleton):
+class Ec2AutoScalingService:
     """Service class for interacting with AWS EC2 Auto-Scaling Groups."""
 
-    autoscaling_client: ClassVar[AutoScalingClient] = resolve_client("autoscaling")  # type: ignore
+    autoscaling_client: Optional["AutoScalingClient"] = None
 
     def __init__(self):
         self.logger = get_logger()
+        if not self.autoscaling_client:
+            self.autoscaling_client = boto_factory.resolve_client("autoscaling")  # type: ignore
 
     def describe_instances(
         self,
         *,
         auto_scaling_group_names: list[str],
-        tag_filters: Sequence[FilterTypeDef] | None = None,
-    ) -> dict[Annotated[str, "ASG Name"], Sequence[InstanceTypeDef]]:
+        tag_filters: Sequence["FilterTypeDef"] | None = None,
+    ) -> dict[Annotated[str, "ASG Name"], Sequence["InstanceTypeDef"]]:
         """Lists the running EC2 instances in the Auto-Scaling Groups.
 
         For more information please visit:
@@ -70,7 +69,7 @@ class Ec2AutoScalingService(metaclass=Singleton):
         if tag_filters:
             kwargs["Filters"] = list(tag_filters)
 
-        asg_ec2_instances: dict[Annotated[str, "ASG Name"], Sequence[InstanceTypeDef]] = {}
+        asg_ec2_instances: dict[Annotated[str, "ASG Name"], Sequence["InstanceTypeDef"]] = {}
 
         # Get paginator and iterate through the results
         try:

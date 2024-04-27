@@ -1,11 +1,10 @@
-from app.config.env_configuration_service import EnvironmentConfigurationService
 from app.context import RUNTIME_CONTEXT
-from app.utils.di import DIContainer, DILifetimeScope
+from app.utils.di import DIContainer
 
 from .instance_discovery_interface import InstanceDiscoveryInterface
 
 
-def register_services(di_container: DIContainer, env_config_service: EnvironmentConfigurationService):
+def register_services(di_container: DIContainer):
     """Registers services concrete implementations in the DI container.
 
     Args:
@@ -14,4 +13,4 @@ def register_services(di_container: DIContainer, env_config_service: Environment
     if RUNTIME_CONTEXT.is_aws:
         from .internal.aws.aws_instance_discovery_service import AwsInstanceDiscoveryService
 
-        di_container.register(InstanceDiscoveryInterface, AwsInstanceDiscoveryService, lifetime=DILifetimeScope.SCOPED)
+        di_container.register(InstanceDiscoveryInterface, AwsInstanceDiscoveryService)

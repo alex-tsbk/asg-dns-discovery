@@ -1,12 +1,12 @@
 from typing import Any
 
 from app.context import RUNTIME_CONTEXT
-from app.utils.singleton import Singleton
+from app.utils.exceptions import BusinessException
 
 from .lifecycle_event_model import LifecycleEventModel
 
 
-class LifecycleEventModelFactory(metaclass=Singleton):
+class LifecycleEventModelFactory:
     """Lifecycle event model factory. Creates lifecycle event models based on the runtime context."""
 
     def create(self, event: dict[str, Any]) -> LifecycleEventModel:
@@ -23,4 +23,6 @@ class LifecycleEventModelFactory(metaclass=Singleton):
 
             return AwsLifecycleEventModel.from_dict(event)
 
-        raise NotImplementedError("Unsupported runtime context")
+        raise BusinessException(
+            f"Unable to resolve lifecycle model in for cloud context: {RUNTIME_CONTEXT.cloud_provider}"
+        )

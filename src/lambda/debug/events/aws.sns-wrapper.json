@@ -1,0 +1,22 @@
+{
+    "Records": [
+        {
+            "EventSource": "aws:sns",
+            "EventVersion": "1.0",
+            "EventSubscriptionArn": "arn:aws:sns:us-east-1:123456789012:dev-sg-dns-discovery:f4fdba36-a856-4dde-ad38-99aa1190c534",
+            "Sns": {
+                "Type": "Notification",
+                "MessageId": "4a9f3fdc-a3e3-58db-b23b-61a4edd05553",
+                "TopicArn": "arn:aws:sns:us-east-1:123456789012:dev-sg-dns-discovery",
+                "Subject": "Auto Scaling:  Lifecycle action 'TERMINATING' for instance i-05629ab7d9287e205 in progress.",
+                "Message": "{%MESSAGE%}",
+                "Timestamp": "2024-03-23T03:26:43.936Z",
+                "SignatureVersion": "1",
+                "Signature": "kp5cD...OtDwCg==",
+                "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-60eadc530605d63b8e62a523676ef735.pem",
+                "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:dev-sg-dns-discovery:f4fdba36-a856-4dde-ad38-99aa1190c534",
+                "MessageAttributes": {}
+            }
+        }
+    ]
+}

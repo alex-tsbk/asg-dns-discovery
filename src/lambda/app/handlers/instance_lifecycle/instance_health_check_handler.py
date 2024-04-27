@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import ClassVar
 
 from app.components.healthcheck.health_check_interface import HealthCheckInterface

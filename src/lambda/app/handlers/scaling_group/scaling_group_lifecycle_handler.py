@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-from app.components.dns.dns_management_interface import DnsManagementInterface
 from app.components.healthcheck.health_check_interface import HealthCheckInterface
 from app.components.lifecycle.instance_lifecycle_interface import InstanceLifecycleInterface
 from app.components.lifecycle.models.lifecycle_event_model_factory import LifecycleEventModelFactory
@@ -28,8 +25,8 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
         health_check_service: HealthCheckInterface,
         readiness_service: InstanceReadinessInterface,
         distributed_lock_service: DistributedLockInterface,
-        dns_management_service: DnsManagementInterface,
     ) -> None:
+        super().__init__()
         self.logger = get_logger()
         self.env_configuration_service = env_configuration_service
         self.sg_configuration_service = sg_configuration_service
@@ -38,7 +35,6 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
         self.health_check_service = health_check_service
         self.readiness_service = readiness_service
         self.distributed_lock_service = distributed_lock_service
-        self.dns_management_service = dns_management_service
 
     def handle(self, context: ScalingGroupLifecycleContext) -> HandlerContext:
         """Handle instance readiness lifecycle

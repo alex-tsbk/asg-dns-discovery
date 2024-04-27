@@ -1,9 +1,8 @@
-from __future__ import annotations
+from typing import TYPE_CHECKING, Optional
 
-from typing import TYPE_CHECKING, ClassVar
-
+from app.config.env_configuration_service import EnvironmentConfigurationService
 from app.entities.envelope import Envelope
-from app.infrastructure.aws.boto_factory import resolve_client
+from app.infrastructure.aws import boto_factory
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
@@ -20,13 +19,15 @@ class SqsService(metaclass=Singleton):
     Service class for enqueuing messages to AWS SQS.
     """
 
-    sqs_client: ClassVar[SQSClient] = resolve_client("sqs")  # type: ignore
+    sqs_client: Optional["SQSClient"] = None
 
-    def __init__(self, endpoint: str):
+    def __init__(self, environment_configuration_service: EnvironmentConfigurationService):
         self.logger = get_logger()
-        self.endpoint = endpoint
+        self.endpoint = environment_configuration_service.reconciliation_config.message_broker_url
+        if not self.sqs_client:
+            self.sqs_client = boto_factory.resolve_client("sqs")  # type: ignore
 
-    def enqueue(self, message: Envelope) -> SendMessageResultTypeDef:
+    def enqueue(self, message: Envelope) -> "SendMessageResultTypeDef":
         """Enqueues a message to the specified SQS queue.
 
         Args:

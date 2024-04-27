@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
@@ -88,7 +86,7 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
 
         # Collect EC2 instances information
         ec2_instances_ids = list(set(instances_models.keys()))
-        aws_instances: list[InstanceTypeDef] = self.aws_ec2_service.get_instances(ec2_instances_ids)
+        aws_instances: list["InstanceTypeDef"] = self.aws_ec2_service.get_instances(ec2_instances_ids)
         for aws_instance in aws_instances:
             instance_model = instances_models.get(aws_instance["InstanceId"])
             if not instance_model:
@@ -108,7 +106,7 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
         return list(result.values())
 
     @classmethod
-    def _build_instance_model(cls, aws_instance_info: InstanceTypeDef) -> Instance:
+    def _build_instance_model(cls, aws_instance_info: "InstanceTypeDef") -> Instance:
         """Builds an Instance Model from AWS Instance information.
 
         Args:
@@ -132,7 +130,7 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
         return instance
 
     @staticmethod
-    def _fill_instance_metadata(instance: Instance, aws_instance_info: InstanceTypeDef):
+    def _fill_instance_metadata(instance: Instance, aws_instance_info: "InstanceTypeDef"):
         """Fetches instance metadata from AWS instance information and updates the instance model.
 
         Args:
@@ -152,7 +150,7 @@ class AwsInstanceDiscoveryService(InstanceDiscoveryInterface):
         )
 
     @staticmethod
-    def _fill_instance_tags(instance: Instance, aws_instance_info: InstanceTypeDef):
+    def _fill_instance_tags(instance: Instance, aws_instance_info: "InstanceTypeDef"):
         """Fetches instance tags from AWS instance information and updates the instance model.
 
         Args:

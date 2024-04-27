@@ -1,11 +1,11 @@
-from app.config.env_configuration_service import EnvironmentConfigurationService
+from app.components.lifecycle.models.lifecycle_event_model_factory import LifecycleEventModelFactory
 from app.context import RUNTIME_CONTEXT
-from app.utils.di import DIContainer, DILifetimeScope
+from app.utils.di import DIContainer
 
 from .instance_lifecycle_interface import InstanceLifecycleInterface
 
 
-def register_services(di_container: DIContainer, env_config_service: EnvironmentConfigurationService):
+def register_services(di_container: DIContainer):
     """Registers services concrete implementations in the DI container.
 
     Args:
@@ -15,4 +15,8 @@ def register_services(di_container: DIContainer, env_config_service: Environment
     if RUNTIME_CONTEXT.is_aws:
         from .internal.aws.aws_instance_lifecycle_service import AwsInstanceLifecycleService
 
-        di_container.register(InstanceLifecycleInterface, AwsInstanceLifecycleService, lifetime=DILifetimeScope.SCOPED)
+        di_container.register(InstanceLifecycleInterface, AwsInstanceLifecycleService)
+
+    # Register factory so it can be consumed as a dependency
+    lifecycle_event_mode_factory = LifecycleEventModelFactory()
+    di_container.register_instance(lifecycle_event_mode_factory)

@@ -38,6 +38,7 @@
   "python.analysis.diagnosticSeverityOverrides": {
     "reportUnusedFunction": "warning",
     "reportTypedDictNotRequiredAccess": "warning",
+    "reportOptionalMemberAccess": "information",
   },
   "python.terminal.activateEnvironment": true,
   "editor.formatOnSave": true,

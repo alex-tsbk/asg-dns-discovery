@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 from typing import Any
 
@@ -7,7 +5,6 @@ from app.components.lifecycle.models.lifecycle_event_model import LifecycleEvent
 from app.components.lifecycle.models.lifecycle_event_model_factory import LifecycleEventModelFactory
 from app.handlers.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.handlers.handler_interface import HandlerInterface
-from app.utils.di import Injectable, NamedInjectable
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
@@ -19,9 +16,7 @@ class AwsScalingGroupLifecycleEventHandler:
     def __init__(
         self,
         lifecycle_event_model_factory: LifecycleEventModelFactory,
-        scaling_group_lifecycle_handler: Injectable[
-            HandlerInterface[ScalingGroupLifecycleContext], NamedInjectable(ScalingGroupLifecycleContext.__name__)
-        ],
+        scaling_group_lifecycle_handler: HandlerInterface[ScalingGroupLifecycleContext],
     ):
         self.lifecycle_event_model_factory = lifecycle_event_model_factory
         self.scaling_group_lifecycle_handler = scaling_group_lifecycle_handler
