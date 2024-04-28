@@ -5,11 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug: Show Help",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "debug.main",
+            "args": [
+                "--help"
+            ],
+            "cwd": "${workspaceFolder}/src/lambda",
+            "console": "integratedTerminal",
+        },
+        {
             // Scaling Group Lifecycle Event Handler (AWS)
             "name": "AWS: SG LCH",
             "type": "debugpy",
             "request": "launch",
-            "module": "debug.debug_main",
+            "module": "debug.main",
             "args": [
                 "--cloud-provider",
                 "aws",
