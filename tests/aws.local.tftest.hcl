@@ -1,6 +1,6 @@
 mock_provider "aws" {
   alias  = "fake"
-  source = "./tests/mocks"
+  source = "./tests/mocks/aws"
 }
 
 variables {
@@ -74,20 +74,16 @@ run "execute" {
   variables {
     records = [
       {
-        scaling_group_name           = run.setup.test_asg_name
-        multiple_config_proceed_mode = "ALL_OPERATIONAL"
+        scaling_group_name = run.setup.test_asg_name
         dns_config = {
           record_name = "test"
-          provider    = "route53"
           dns_zone_id = run.setup.tests_route53_zone_id
         }
       }
     ]
 
     lambda_settings = {
-      python_runtime            = "python3.8"
-      log_identifier            = "sg-dns-discovery"
-      lifecycle_timeout_seconds = 300
+      python_runtime = "python3.12"
       subnets = [
         run.setup.test_public_subnet_id
       ]
@@ -105,10 +101,44 @@ run "execute" {
     error_message = "Expected 1 lifecycle hook for EC2 instance draining to be created"
   }
 
-  # Expect "aws_lambda_function.dns_discovery_lambda_lifecycle_handler" to have vpc_config block
   assert {
     condition     = length(aws_lambda_function.dns_discovery_lambda_lifecycle_handler.vpc_config) > 0
-    error_message = "Expected lambda function to have VPC configuration"
+    error_message = "Expected lambda function to have VPC configuration when lambda subnets provided"
+  }
+
+  assert {
+    condition = alltrue(
+      [
+        aws_lambda_function.dns_discovery_lambda_lifecycle_handler.runtime == var.lambda_settings.python_runtime,
+        aws_lambda_function.dns_discovery_lambda_reconciliation.runtime == var.lambda_settings.python_runtime
+      ]
+    )
+    error_message = "Expected lambda functions to have runtime set to ${var.lambda_settings.python_runtime}"
+  }
+
+  assert {
+    condition = alltrue([
+      md5(jsonencode(aws_lambda_function.dns_discovery_lambda_lifecycle_handler.environment[0].variables)) == md5(jsonencode(aws_lambda_function.dns_discovery_lambda_reconciliation.environment[0].variables)),
+    ])
+    error_message = "Expected lambda functions to have the same environment variables"
+  }
+
+  assert {
+    condition = alltrue([
+      aws_lambda_function.dns_discovery_lambda_lifecycle_handler.source_code_hash == data.archive_file.sg_dns_discovery_lambda_source.output_base64sha256,
+      aws_lambda_function.dns_discovery_lambda_reconciliation.source_code_hash == data.archive_file.sg_dns_discovery_lambda_source.output_base64sha256
+    ])
+    error_message = "Expect all lambda functions to have the same source code hash"
+  }
+
+  assert {
+    condition     = var.reconciliation.message_broker == "sqs" ? length(aws_sqs_queue.reconciliation_queue) > 0 : true
+    error_message = "Expect SQS queue to be created when message broker is set to 'sqs'"
+  }
+
+  assert {
+    error_message = "Expect 'reconciliation_message_broker_url' environment variable to be set to the SQS queue URL"
+    condition     = var.reconciliation.message_broker == "sqs" ? aws_lambda_function.dns_discovery_lambda_reconciliation.environment[0].variables["reconciliation_message_broker_url"] == aws_sqs_queue.reconciliation_queue.url : true
   }
 }
 

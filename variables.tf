@@ -277,7 +277,11 @@ variable "monitoring" {
     metrics_namespace = optional(string, "sg-dns-discovery")
     # When set to true - enables sending alarms to specified destination. Default is false.
     alarms_enabled = optional(bool, false)
-    # SNS topic ARN to send alarms to.
+    # SNS topic ARN to send alarms notifications to.
+    # This is typically an SNS topic ARN used by your organization.
+    # It is your responsibility to ensure that the topic is correctly configured and has necessary permissions.
+    # You can obtain the ARN of Lambda role via "lambda_iam_role_arn" output of the module,
+    # and attach necessary permissions. Automatic wire-up is omitted on purpose to avoid accidental misconfiguration.
     alarms_notification_destination = optional(string, "")
   })
 
@@ -331,13 +335,23 @@ variable "asg_lifecycle_hooks_settings" {
   description = "Configuration for ASG lifecycle hooks."
 
   type = object({
-    # Timeout for the lifecycle hook. Default is 10 minutes.
+    # Maximum timeout to allow for the lifecycle hook to respond. Default is 10 minutes.
+    # Read more:
+    # https://docs.aws.amazon.com/autoscaling/ec2/userguide/lifecycle-hooks.html#lifecycle-hook-considerations
     launch_timeout_seconds = optional(number, 10 * 60)
-    # Default result for the lifecycle hook. Default is 'CONTINUE'.
+    # Default result for the lifecycle hook. Allowed values: CONTINUE, ABANDON. Default is 'CONTINUE'.
     launch_default_result = optional(string, "CONTINUE")
-    # Timeout for the drain lifecycle hook. Default is 2 minutes.
-    drain_timeout_seconds = optional(number, 2 * 60)
+    # Timeout for the drain lifecycle hook. Default is 5 minutes.
+    drain_timeout_seconds = optional(number, 5 * 60)
     # Default result for the drain lifecycle hook. Default is 'CONTINUE'.
+    #
+    # Important remarks on hook consequences:
+    # * If you set to CONTINUE, the Auto Scaling group can proceed with any remaining actions, such as other lifecycle hooks, before termination.
+    # * If you set to ABANDON, the Auto Scaling group terminates the instance immediately.
+    # No matter which option you choose, the instance will be terminated.
+    #
+    # Read more:
+    # https://docs.aws.amazon.com/autoscaling/ec2/userguide/adding-lifecycle-hooks.html#adding-lifecycle-hooks-console
     drain_default_result = optional(string, "CONTINUE")
   })
 

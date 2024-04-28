@@ -7,9 +7,11 @@ MOTO_PORT=5000
 
 # Command is execute when devcontainer is started
 setup: venv install
+
 # Commands to run before committing code
-test: tests_unit tests_integration tests_terraform
+test: tests_unit tests_integration tests_component tests_terraform
 pre-commit: format test
+
 # Commands to help with re-initializing the project setup
 reset: clean setup
 
@@ -39,58 +41,47 @@ format:
 	@isort --profile black -l $(PYTHON_MAX_LINE_LENGTH) src/
 	@black -l $(PYTHON_MAX_LINE_LENGTH) src/
 
-# Terraform Commands
+# Motot setup
 
-.PHONY: tf-setup
-tf-setup:
-	@echo "** Creating Terraform plan..."
-	terraform plan -var-file moto.tfvars -out moto.tfplan
+.PHONY: moto-server-up
+moto-server-up:
+	@echo "Setting up moto server..."
+	@echo "" > $$PROJECT_ROOT/.moto-server-logs.log
+	MOTO_CALL_RESET_API=false moto_server --port $(MOTO_PORT) --host localhost > $$PROJECT_ROOT/.moto-server-logs.log 2>&1 &
+	@echo "Moto server started on port $(MOTO_PORT)."
 
-.PHONY: tf-apply
-tf-apply:
-	@echo "** Applying Terraform plan..."
-	terraform apply moto.tfplan
-
-.PHONY: tf-destroy
-tf-destroy:
-	@echo "** Destroying Terraform stack..."
-	terraform destroy -var-file moto.tfvars -auto-approve
+.PHONY: moto-server-down
+moto-server-down:
+	@echo "Killing moto server..."
+	@$(MAKE) kill-port PORT=$(MOTO_PORT)
 
 # Terraform Tests
 
-.PHONY: tests_terraform
-tests_terraform:
-	@echo "** Running Terraform tests..."
-# Ensure we force-recreate the moto server for each test
-	@rm -rf ./moto.* > /dev/null
-	$(MAKE) kill-port PORT=$(MOTO_PORT)
-# Set up moto server
-	@echo "** Setting up terraform for local testing... Please wait..."
-	@echo "" > $$PROJECT_ROOT/.moto-server-logs.log
-	@( \
-	MOTO_CALL_RESET_API=false \
-	TEST_SERVER_MODE=true \
-	moto_server --port $(MOTO_PORT) --host localhost >> $$PROJECT_ROOT/.moto-server-logs.log 2>&1 & \
-	)
-# Copy the moto test files to the root directory
-	@cp -r ./tests/moto* ./ > /dev/null
-	@$(MAKE) tf-setup
-	@$(MAKE) tf-apply
-# TODO: Run tests to ensure that required resources are there, can do by inspecting state file
-# No errors, proceed with tear-down
-	@echo "** Tearing down local terraform stack... Please wait..."
-	$(MAKE) tf-destroy
-	@echo "** Killing moto server..."
-	@$(MAKE) kill-port PORT=$(MOTO_PORT)
-	@rm -rf ./moto.* > /dev/null
+.PHONY: tests_terraform_local
+tests_terraform_local:
+	@echo "** Running Terraform tests.. [LOCAL]"
+	terraform test -filter=tests/aws.local.tftest.hcl
 	@echo "** Finished Terraform tests: SUCCESS."
 
-# Unit/Integration tests
+.PHONY: tests_terraform_moto
+tests_terraform_moto:
+	@echo "** Running Terraform tests... [MOTO]"
+	@$(MAKE) moto-server-up
+	terraform test -filter=tests/aws.moto.tftest.hcl
+	@$(MAKE) moto-server-down
+	@echo "** Finished Terraform tests: SUCCESS."
+
+.PHONY: tests_terraform
+tests_terraform: tests_terraform_local tests_terraform_moto
+
+# Unit tests
 
 .PHONY: tests_unit
 tests_unit:
 	@echo "Running unit tests..."
 	pytest -c $(PROJECT_ROOT)/src/lambda/tests/tests_unit/pytest.ini --rootdir=$(PROJECT_ROOT)/src/lambda/ $(PROJECT_ROOT)/src/lambda/tests/tests_unit/
+
+# Integration tests
 
 tests_integration_aws:
 	@echo "Running AWS integration tests..."
@@ -98,6 +89,7 @@ tests_integration_aws:
 
 .PHONY: tests_integration
 tests_integration: tests_integration_aws
+
 # Utility commands
 
 .PHONY: kill-port
