@@ -25,7 +25,8 @@
 				"ms-vscode.makefile-tools",
 				"njpwerner.autodocstring",
 				"oderwat.indent-rainbow",
-				"kevinrose.vsc-python-indent"
+				"kevinrose.vsc-python-indent",
+				"jimasp.behave-vsc"
 			]
 		}
 	},

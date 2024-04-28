@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import boto3
 import pytest
+from app.config.env_configuration_service import EnvironmentConfigurationService
 from app.infrastructure.aws.services.dynamodb_repository import DynamoDbTableRepository
 from app.utils.exceptions import CloudProviderException
 from botocore.exceptions import ClientError
@@ -10,9 +11,15 @@ from moto import mock_aws
 
 
 @pytest.fixture(scope="function")
-def create_dynamodb_table(aws):
+def environment_configuration_service(monkeypatch):
+    monkeypatch.setenv("db_table_name", "test_table")
+    return EnvironmentConfigurationService()
+
+
+@pytest.fixture(scope="function")
+def create_dynamodb_table(aws, environment_configuration_service):
     boto3.client("dynamodb").create_table(
-        TableName="test_table",
+        TableName=environment_configuration_service.db_config.table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
@@ -20,8 +27,9 @@ def create_dynamodb_table(aws):
 
 
 @pytest.fixture(scope="function")
-def dynamodb_repository(aws):
-    yield DynamoDbTableRepository("test_table")
+def dynamodb_repository(aws, environment_configuration_service):
+
+    yield DynamoDbTableRepository(environment_configuration_service)
 
 
 @pytest.fixture(scope="function")

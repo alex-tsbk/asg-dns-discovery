@@ -27,7 +27,8 @@ data "aws_iam_policy_document" "dns_discovery_lambda_permissions" {
     sid    = "Logs"
     effect = "Allow"
     actions = [
-      "logs:CreateLogGroup",
+      # TODO: Revisit this, because I would like to ensure that only necessary permissions are granted
+      # "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents",
       "logs:PutRetentionPolicy"
@@ -157,4 +158,11 @@ data "aws_iam_policy_document" "dns_discovery_lambda_permissions" {
     }
 
   }
+}
+
+resource "aws_iam_role_policy_attachment" "extra_dns_discovery_lambda_policies" {
+  count = length(var.lambda_settings.extra_iam_policies_arns)
+
+  policy_arn = var.lambda_settings.extra_iam_policies_arns[count.index]
+  role       = aws_iam_role.dns_discovery_lambda.name
 }

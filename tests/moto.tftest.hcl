@@ -1,6 +1,9 @@
+# IMPORTANT: This file is used to configure the AWS provider to use Moto endpoints
+# for testing. MOTO must be running in server mode for this to work. The endpoints
+# must match the $MOTO_PORT environment variable set in the Makefile.
+# Read more at: https://docs.getmoto.org/en/latest/docs/server_mode.html#example-usage
+
 provider "aws" {
-  // Moto Endpoints
-  // Read more at: https://docs.getmoto.org/en/latest/docs/server_mode.html#example-usage
   region                      = "us-east-1"
   access_key                  = "testing"
   secret_key                  = "testing"
@@ -11,6 +14,8 @@ provider "aws" {
 
   endpoints {
     # Note - port must match $MOTO_PORT environment variable set in the Makefile
+    # List of all available endpoints:
+    # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/custom-service-endpoints#available-endpoint-customizations
     lambda      = "http://localhost:5000"
     dynamodb    = "http://localhost:5000"
     sns         = "http://localhost:5000"

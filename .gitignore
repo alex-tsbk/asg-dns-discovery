@@ -173,6 +173,7 @@ cython_debug/
 # Tests purposes
 /moto.tf
 /moto.tfvars
+.moto-*.log
 
 # Artifacts
 lambda.zip

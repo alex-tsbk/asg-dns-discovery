@@ -71,8 +71,10 @@
     "-c",
     "pytest.ini"
   ],
+  "behave-vsc.featuresPath": "/src/lambda/tests/tests_component/",
   "files.associations": {
-    "*.toml": "ini"
+    "*.toml": "ini",
+    "*.hcl": "terraform",
   },
   "cSpell.words": [
     "boto",

@@ -306,6 +306,9 @@ variable "lambda_settings" {
     # Must be set if the lambda needs to access resources in the VPC - health checks on private IPs.
     subnets         = optional(list(string), [])
     security_groups = optional(list(string), [])
+    # IAM - extra policies to attach to the lambda role.
+    # It's your responsibility to ensure that the policies are correct and have the necessary permissions.
+    extra_iam_policies_arns = optional(list(string), [])
     # Log settings for the lambda runtime
     log_identifier        = optional(string, "sg-dns-discovery")
     log_level             = optional(string, "INFO")
@@ -317,6 +320,7 @@ variable "lambda_settings" {
     lifecycle_timeout_seconds = 15 * 60
     subnets                   = []
     security_groups           = []
+    extra_iam_policies_arns   = []
     log_identifier            = "sg-dns-discovery"
     log_level                 = "INFO"
     log_retention_in_days     = 90

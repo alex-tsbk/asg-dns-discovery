@@ -3,7 +3,7 @@ import os
 from importlib.machinery import ModuleSpec
 
 from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
-from app.config.env_configuration_service import EnvironmentConfigurationService
+from app.config.env_configuration_service import CachedEnvironmentConfigurationService, EnvironmentConfigurationService
 from app.config.sg_configuration_service import ScalingGroupConfigurationsService
 from app.handlers.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.handlers.handler_interface import HandlerInterface
@@ -33,6 +33,7 @@ def __register_essential_dependencies(di_container: DIContainer) -> None:
     """
     # Configuration services
     di_container.register_as_self(EnvironmentConfigurationService)
+    di_container.decorate(EnvironmentConfigurationService, CachedEnvironmentConfigurationService)
     di_container.register_as_self(ScalingGroupConfigurationsService)
 
 
