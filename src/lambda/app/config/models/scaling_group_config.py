@@ -43,9 +43,6 @@ class ScalingGroupConfiguration(DataclassBase):
     def __post_init__(self):
         if not self.scaling_group_name:
             raise ValueError("ASG name is required")
-        # Assign default valid states if not provided
-        if not self.scaling_group_valid_states:
-            self.scaling_group_valid_states = ["InService"]
 
     def __str__(self) -> str:
         return f"ASG Config:({self.scaling_group_name}/{self.dns_config.dns_zone_id}/{self.dns_config.record_name}/{self.dns_config.record_type})"
@@ -85,11 +82,11 @@ class ScalingGroupConfiguration(DataclassBase):
             ),
         }
         # Only create health check config if it's present in the config
-        health_check_config = data.get("health_check_config", {})
+        health_check_config = data.get("health_check", {})
         if health_check_config:
             params["health_check_config"] = HealthCheckConfig.from_dict(health_check_config)
         # Only create readiness config if it's present in the config
-        readiness_config = data.get("readiness_config", {})
+        readiness_config = data.get("readiness", {})
         if readiness_config:
             params["readiness_config"] = ReadinessConfig.from_dict(readiness_config)
         # Initialize the config

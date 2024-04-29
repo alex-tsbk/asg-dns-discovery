@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING
 
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
-from app.entities.instance import Instance, InstanceMetadata, InstanceTag
-from app.entities.scaling_group import ScalingGroup
-from app.infrastructure.aws.services.ec2_asg_service import Ec2AutoScalingService
-from app.infrastructure.aws.services.ec2_service import Ec2Service
+from app.domain.entities.instance import Instance, InstanceMetadata, InstanceTag
+from app.domain.entities.scaling_group import ScalingGroup
+from app.integrations.aws.services.ec2_asg_service import Ec2AutoScalingService
+from app.integrations.aws.services.ec2_service import Ec2Service
 from app.utils.logging import get_logger
 
 if TYPE_CHECKING:

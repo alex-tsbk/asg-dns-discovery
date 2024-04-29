@@ -1,8 +1,8 @@
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
-from app.entities.instance import Instance
-from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
-from app.handlers.handler_base import HandlerBase
-from app.handlers.handler_context import HandlerContext
+from app.contexts.instance_lifecycle_context import InstanceLifecycleContext
+from app.domain.entities.instance import Instance
+from app.domain.handlers.handler_base import HandlerBase
+from app.domain.handlers.handler_context import HandlerContext
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 

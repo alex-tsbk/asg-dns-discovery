@@ -2,9 +2,9 @@ from typing import ClassVar
 
 from app.components.readiness.instance_readiness_interface import InstanceReadinessInterface
 from app.components.readiness.models.readiness_result_model import ReadinessResultModel
-from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
-from app.handlers.handler_base import HandlerBase
-from app.handlers.handler_context import HandlerContext
+from app.contexts.instance_lifecycle_context import InstanceLifecycleContext
+from app.domain.handlers.handler_base import HandlerBase
+from app.domain.handlers.handler_context import HandlerContext
 from app.utils import instrumentation
 from app.utils.logging import get_logger
 

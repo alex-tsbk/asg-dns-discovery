@@ -4,7 +4,7 @@ import os
 import boto3
 import pytest
 from _pytest.fixtures import SubRequest
-from app.infrastructure.aws import boto_factory
+from app.integrations.aws import boto_factory
 from boto3.resources.base import ServiceResource
 from botocore.client import BaseClient
 from botocore.stub import Stubber

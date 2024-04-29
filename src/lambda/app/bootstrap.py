@@ -5,13 +5,13 @@ from importlib.machinery import ModuleSpec
 from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.config.env_configuration_service import CachedEnvironmentConfigurationService, EnvironmentConfigurationService
 from app.config.sg_configuration_service import ScalingGroupConfigurationsService
-from app.handlers.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
-from app.handlers.handler_interface import HandlerInterface
+from app.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
+from app.domain.handlers.handler_interface import HandlerInterface
 from app.handlers.scaling_group.scaling_group_lifecycle_handler import ScalingGroupLifecycleHandler
 from app.utils.di import DIContainer
 from app.utils.logging import get_logger
 
-from .context import RUNTIME_CONTEXT
+from .contexts.runtime_context import RUNTIME_CONTEXT
 
 logger = get_logger()
 
@@ -44,12 +44,12 @@ def __register_aws_dependencies(di_container: DIContainer) -> None:
         di_container (DIContainer): Dependency injection container
     """
     # Boto3 Clients and Services
-    from app.infrastructure.aws.services.cloudwatch_service import CloudWatchService
-    from app.infrastructure.aws.services.dynamodb_repository import DynamoDbTableRepository
-    from app.infrastructure.aws.services.ec2_asg_service import Ec2AutoScalingService
-    from app.infrastructure.aws.services.ec2_service import Ec2Service
-    from app.infrastructure.aws.services.route53_service import Route53Service
-    from app.infrastructure.aws.services.sqs_service import SqsService
+    from app.integrations.aws.services.cloudwatch_service import CloudWatchService
+    from app.integrations.aws.services.dynamodb_repository import DynamoDbTableRepository
+    from app.integrations.aws.services.ec2_asg_service import Ec2AutoScalingService
+    from app.integrations.aws.services.ec2_service import Ec2Service
+    from app.integrations.aws.services.route53_service import Route53Service
+    from app.integrations.aws.services.sqs_service import SqsService
 
     di_container.register_as_self(CloudWatchService)
     di_container.register(DatabaseRepositoryInterface, DynamoDbTableRepository, name="dynamodb")
@@ -70,8 +70,10 @@ def __register_handlers(di_container: DIContainer) -> None:
     Args:
         di_container (DIContainer): Dependency injection container
     """
-    # Lifecycle Handlers
+    # Scaling group lifecycle
     di_container.register(HandlerInterface[ScalingGroupLifecycleContext], ScalingGroupLifecycleHandler)
+    # Instance lifecycle
+    # di_container.register(HandlerInterface[InstanceLifecycleContext], InstanceLifecycleHandler)
 
 
 def __register_components_dependencies(

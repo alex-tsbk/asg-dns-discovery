@@ -4,9 +4,9 @@ from app.components.healthcheck.health_check_interface import HealthCheckInterfa
 from app.components.healthcheck.models.health_check_result_model import HealthCheckResultModel
 from app.components.metadata.instance_metadata_interface import InstanceMetadataInterface
 from app.components.metadata.models.metadata_result_model import MetadataResultModel
-from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
-from app.handlers.handler_base import HandlerBase
-from app.handlers.handler_context import HandlerContext
+from app.contexts.instance_lifecycle_context import InstanceLifecycleContext
+from app.domain.handlers.handler_base import HandlerBase
+from app.domain.handlers.handler_context import HandlerContext
 from app.utils import instrumentation
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger

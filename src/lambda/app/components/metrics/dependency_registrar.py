@@ -1,5 +1,5 @@
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.context import RUNTIME_CONTEXT
+from app.contexts.runtime_context import RUNTIME_CONTEXT
 from app.utils.di import DIContainer
 
 from .internal.development_metrics_service import DevelopmentMetricsService

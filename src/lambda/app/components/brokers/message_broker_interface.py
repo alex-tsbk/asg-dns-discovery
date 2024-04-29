@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from app.entities.envelope import Envelope
+from app.domain.entities.envelope import Envelope
 
 
 class MessageBrokerInterface(metaclass=ABCMeta):

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from app.entities.envelope import Envelope
+from app.domain.entities.envelope import Envelope
 
 
 @dataclass

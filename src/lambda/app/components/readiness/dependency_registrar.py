@@ -1,4 +1,4 @@
-from app.context import RUNTIME_CONTEXT
+from app.contexts.runtime_context import RUNTIME_CONTEXT
 from app.utils.di import DIContainer
 
 from .instance_readiness_interface import InstanceReadinessInterface

@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.infrastructure.aws import boto_factory
+from app.integrations.aws import boto_factory
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json

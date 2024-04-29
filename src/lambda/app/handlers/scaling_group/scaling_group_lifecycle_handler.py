@@ -5,10 +5,10 @@ from app.components.mutex.distributed_lock_interface import DistributedLockInter
 from app.components.readiness.instance_readiness_interface import InstanceReadinessInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
 from app.config.sg_configuration_service import ScalingGroupConfigurationsService
-from app.handlers.contexts.instance_lifecycle_context import InstanceLifecycleContext
-from app.handlers.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
-from app.handlers.handler_base import HandlerBase
-from app.handlers.handler_context import HandlerContext
+from app.contexts.instance_lifecycle_context import InstanceLifecycleContext
+from app.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
+from app.domain.handlers.handler_base import HandlerBase
+from app.domain.handlers.handler_context import HandlerContext
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 
@@ -73,5 +73,7 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
             )
 
             context.register_instance_context(instance_lifecycle_context)
+
+        # TODO: Implement the logic for handling the lifecycle event
 
         return super().handle(context)

@@ -13,7 +13,7 @@ def normalized(text: str) -> str:
     Remarks:
         Read more on unicode normalization here: https://www.unicode.org/reports/tr15/#Normalization_Forms_Table
     """
-    return unicodedata.normalize("NFKD", text.casefold())
+    return unicodedata.normalize("NFKD", str(text).casefold())
 
 
 def alike(*args: str) -> bool:

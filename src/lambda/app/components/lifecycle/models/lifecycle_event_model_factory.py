@@ -1,6 +1,6 @@
 from typing import Any
 
-from app.context import RUNTIME_CONTEXT
+from app.contexts.runtime_context import RUNTIME_CONTEXT
 from app.utils.exceptions import BusinessException
 
 from .lifecycle_event_model import LifecycleEventModel

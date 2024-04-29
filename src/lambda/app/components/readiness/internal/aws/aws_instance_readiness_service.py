@@ -3,7 +3,7 @@ from typing import Any, Iterable, Mapping
 from app.components.readiness.instance_readiness_interface import InstanceReadinessInterface
 from app.components.readiness.models.readiness_result_model import ReadinessResultModel
 from app.config.models.readiness_config import ReadinessConfig
-from app.infrastructure.aws.services.ec2_service import Ec2Service
+from app.integrations.aws.services.ec2_service import Ec2Service
 from app.utils.logging import get_logger
 
 

@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import Generic, TypeVar
 
-from app.handlers.handler_context import HandlerContext
+from app.domain.handlers.handler_context import HandlerContext
 
 T_contra = TypeVar("T_contra", contravariant=True, bound=HandlerContext)
 

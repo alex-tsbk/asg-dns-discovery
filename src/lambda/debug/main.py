@@ -5,6 +5,7 @@ from typing import Any
 from moto import mock_aws
 
 from . import utils
+from .seeders.dynamo_db_data_seeder import DynamoDBDataSeeder
 
 parser = argparse.ArgumentParser(
     prog="Scaling Group DNS Discovery Application Debugger",
@@ -53,10 +54,21 @@ parser.add_argument(
 )
 
 
-def debug_event_request_handler(event: Any):
+def debug_event_request_handler(event: dict[str, Any]):
+    """Debugs the event request handler.
+
+    Args:
+        event (dict[str, Any]): The event to debug the event request handler for.
+            This is the event that is passed to the event request handler (SNS message in AWS).
+    """
     from app import main
 
-    with mock_aws():
+    with mock_aws(config={"core": {"reset_boto3_session": False}}):
+        # Load seeders to set up infrastructure
+        dynamodb_seeder = DynamoDBDataSeeder()
+        dynamodb_seeder.patch_environment()
+        dynamodb_seeder.seed_default_data()
+        # Handle event
         main.event_request_handler(event, None)
 
 

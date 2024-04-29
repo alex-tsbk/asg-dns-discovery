@@ -88,11 +88,19 @@ class ScalingGroupConfigurationsService:
                 f"Scaling Group configuration not found in repository using key provided: '{config_item_id}'"
             )
 
-        config_item_base64: str = config_definition.get("config", "")
+        config_item_base64: bytes = config_definition.get("config", b"")
         if not config_item_base64:
             raise BusinessException(
                 f"Unable to find 'config' property of Scaling Group configuration object using key provided '{config_item_id}'"
             )
+
+        # Data comes as Binary class, which is wrapper for bytes-encoded string.
+        if hasattr(config_item_base64, "value") and isinstance(getattr(config_item_base64, "value"), bytes):
+            config_item_base64: bytes = config_item_base64.value  # type: ignore
+
+        # Ensure that the configuration is base64 encoded
+        if not isinstance(config_item_base64, bytes):
+            raise BusinessException("Scaling Groups configuration is not base64 encoded")
 
         # Decode base64
         config_items: list[dict[str, Any]] = json.loads(base64.b64decode(config_item_base64).decode("utf-8"))

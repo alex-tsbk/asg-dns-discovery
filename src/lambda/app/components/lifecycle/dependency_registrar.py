@@ -1,5 +1,5 @@
 from app.components.lifecycle.models.lifecycle_event_model_factory import LifecycleEventModelFactory
-from app.context import RUNTIME_CONTEXT
+from app.contexts.runtime_context import RUNTIME_CONTEXT
 from app.utils.di import DIContainer
 
 from .instance_lifecycle_interface import InstanceLifecycleInterface

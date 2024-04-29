@@ -1,6 +1,6 @@
 from app.components.brokers.message_broker_interface import MessageBrokerInterface
-from app.entities.envelope import Envelope
-from app.infrastructure.aws.services.sqs_service import SqsService
+from app.domain.entities.envelope import Envelope
+from app.integrations.aws.services.sqs_service import SqsService
 
 
 class AwsMessageBrokerService(MessageBrokerInterface):

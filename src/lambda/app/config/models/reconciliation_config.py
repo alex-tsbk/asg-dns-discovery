@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
+from app.contexts.runtime_context import RUNTIME_CONTEXT
+
 
 class MessageBrokerProvider(Enum):
     """DNS record provider"""
@@ -30,3 +32,8 @@ class ReconciliationConfig:
     def __post_init__(self):
         if self.message_broker != MessageBrokerProvider.INTERNAL and not self.message_broker_url:
             raise ValueError("'message_broker_url' is '': Non-internal message broker requires a url to be defined.")
+        # Assign default valid states if not provided
+        if not self.scaling_group_valid_states:
+            # Assign well-known valid states based on the runtime context
+            if RUNTIME_CONTEXT.is_aws:
+                self.scaling_group_valid_states = ["InService"]

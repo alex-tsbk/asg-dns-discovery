@@ -165,10 +165,11 @@ variable "records" {
       # IMPORTANT:
       # * Ensure that the health check source is accessible from the resolver function (for AWS - from Lambda).
       endpoint_source = optional(string, "ip:private")
-      path            = optional(string, "")
       port            = number
       protocol        = string
       timeout_seconds = number
+      # Path is required for HTTP/HTTPS health checks
+      path = optional(string, "")
     }), null)
   }))
 

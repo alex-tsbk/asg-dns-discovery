@@ -136,6 +136,7 @@ class DIContainer:
             self._non_overridable_services[key] = True
         # Register service
         self._services[key] = (implementation, lifetime.value)
+        return self
 
     def register_as_self(
         self, implementation: Type[Any], name: str = "", lifetime: DILifetimeScope = DILifetimeScope.SCOPED
@@ -150,6 +151,7 @@ class DIContainer:
                 SCOPED - single instance will be created and reused for the lifetime of the container.
         """
         self.register(implementation, implementation, name, lifetime)
+        return self
 
     def register_instance(self, instance: Any, name: str = "", allow_override: bool = False):
         """Registers an instance in the container.
@@ -170,18 +172,19 @@ class DIContainer:
         self._instances[key] = (instance, _LTS_INSTANCE)
         # Register in services container as well, to prevent resolving by type
         self._services[key] = (type(instance), _LTS_INSTANCE)
+        return self
 
     def decorate(self, interface: Type[Any], implementation: Type[Any], name: str = ""):
         """Decorates an existing service with a new implementation.
 
         Remarks:
-            The new implementation must be a subclass of the interface.
+            The new implementation must be a subclass of the interface type.
             The service being decorated must be registered first.
             The decorated service will be resolved instead of the original one.
             The decorated service will have the same lifetime as the original one.
             The decorated service will receive the original service as a dependency, in the order decorators are declared.
         Args:
-            interface (Type): Type of the interface to decorate.
+            interface (Type): Type to decorate.
             implementation (Type): Type of the new implementation.
             name (str, optional): If named instance is required, provide name. Defaults to None.
         """
@@ -201,6 +204,7 @@ class DIContainer:
         if key not in self._decorated_services:
             self._decorated_services[key] = []
         self._decorated_services[key].append(implementation)
+        return self
 
     def resolve[T](self, interface: Type[T], name: str = "") -> T:
         """Resolves an instance of the given interface from the container.

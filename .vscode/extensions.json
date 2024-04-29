@@ -9,5 +9,6 @@
         "kevinrose.vsc-python-indent",
         "ms-python.flake8",
         "jimasp.behave-vsc",
+        "gruntfuggly.todo-tree",
     ]
 }

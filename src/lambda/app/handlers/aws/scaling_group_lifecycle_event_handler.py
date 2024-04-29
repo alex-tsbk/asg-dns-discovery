@@ -3,8 +3,8 @@ from typing import Any
 
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleEventModel
 from app.components.lifecycle.models.lifecycle_event_model_factory import LifecycleEventModelFactory
-from app.handlers.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
-from app.handlers.handler_interface import HandlerInterface
+from app.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
+from app.domain.handlers.handler_interface import HandlerInterface
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json

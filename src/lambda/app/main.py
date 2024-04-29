@@ -1,7 +1,7 @@
 from typing import Any
 
-from app.context import RUNTIME_CONTEXT
-from app.handlers.handler_protocol import HandlerProtocol
+from app.contexts.runtime_context import RUNTIME_CONTEXT
+from app.domain.handlers.handler_protocol import HandlerProtocol
 from app.utils.di import DIContainer
 from app.utils.exceptions import BusinessException
 

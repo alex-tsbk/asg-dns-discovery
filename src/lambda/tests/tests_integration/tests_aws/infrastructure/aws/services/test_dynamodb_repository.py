@@ -4,7 +4,7 @@ from unittest.mock import patch
 import boto3
 import pytest
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.infrastructure.aws.services.dynamodb_repository import DynamoDbTableRepository
+from app.integrations.aws.services.dynamodb_repository import DynamoDbTableRepository
 from app.utils.exceptions import CloudProviderException
 from botocore.exceptions import ClientError
 from moto import mock_aws

@@ -13,7 +13,7 @@ from app.components.dns.models.dns_change_request_model import (
 from app.components.dns.models.dns_change_response_model import DnsChangeResponseModel
 from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.config.models.dns_record_config import DnsRecordConfig, DnsRecordEmptyValueMode, DnsRecordMappingMode
-from app.infrastructure.aws.services.route53_service import Route53Service
+from app.integrations.aws.services.route53_service import Route53Service
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
 
