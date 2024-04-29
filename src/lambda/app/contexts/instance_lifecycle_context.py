@@ -12,14 +12,20 @@ from app.domain.handlers.handler_context import HandlerContext
 
 @dataclass(kw_only=True)
 class InstanceLifecycleContext(HandlerContext):
-    """Context that tracks change of state over time for a single instance."""
+    """Context represent the lifecycle of a single instance in the scaling group.
+
+    Lifecycle includes the following phases:
+    - Instance is discovered in the target environment and metadata is resolved.
+    - Instance readiness is checked - ensures the instance has passed 'bootstrap' phase.
+    - Instance health is checked - ensures the instance is healthy and not in a degraded state.
+    """
 
     instance_id: str
     # config
     scaling_group_config: ScalingGroupConfiguration
     readiness_config: ReadinessConfig | None
     health_check_config: HealthCheckConfig | None
-    # state
+    # metadata
     instance_model: Instance | None = field(default=None)
     # results
     readiness_result: Optional[ReadinessResultModel] = field(default=None)

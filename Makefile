@@ -6,7 +6,7 @@ VENV=.venv
 MOTO_PORT=5000
 
 # Command is execute when devcontainer is started
-setup: venv install
+setup: venv bootstrap
 
 # Commands to run before committing code
 test: tests_unit tests_integration tests_component tests_terraform
@@ -23,14 +23,16 @@ venv:
 	poetry config virtualenvs.prompt "py{python_version} "
 	poetry env use python3
 
-.PHONY: install
-install:
+.PHONY: bootstrap
+bootstrap:
+	@echo "Fixing git 'dubious permission' error..."
+	@git config --global --add safe.directory $(PROJECT_ROOT)
 	@echo "Installing dependencies..."
-	poetry install
+	@poetry install
 	@echo "Installing pre-commit hooks..."
-	poetry run pre-commit install
+	@poetry run pre-commit install
 	@echo "Ininitalizing terraform..."
-	terraform init
+	@terraform init
 	@echo "Finished installing dependencies."
 
 # Linting and formatting commands

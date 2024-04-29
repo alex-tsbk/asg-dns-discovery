@@ -7,7 +7,7 @@ def to_json(o: Any):
 
     def default_serializer(obj: Any):
         if isinstance(obj, bytes) or hasattr(obj, "value") and isinstance(obj.value, bytes):
-            return "BINARY_DATA"
+            return "<BINARY_DATA>"
         return str(obj)
 
     return json.dumps(o, default=default_serializer)

@@ -5,11 +5,16 @@ from importlib.machinery import ModuleSpec
 from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
 from app.config.env_configuration_service import CachedEnvironmentConfigurationService, EnvironmentConfigurationService
 from app.config.sg_configuration_service import ScalingGroupConfigurationsService
+from app.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
+from app.domain.handlers.handler_base import HandlerBase
 from app.domain.handlers.handler_interface import HandlerInterface
-from app.handlers.scaling_group.scaling_group_lifecycle_handler import ScalingGroupLifecycleHandler
 from app.utils.di import DIContainer
 from app.utils.logging import get_logger
+from app.workflows.instance_lifecycle.handlers.instance_discovery_handler import InstanceDiscoveryHandler
+from app.workflows.instance_lifecycle.handlers.instance_health_check_handler import InstanceHealthCheckHandler
+from app.workflows.instance_lifecycle.handlers.instance_readiness_handler import InstanceReadinessHandler
+from app.workflows.scaling_group_lifecycle.handlers.scaling_group_lifecycle_handler import ScalingGroupLifecycleHandler
 
 from .contexts.runtime_context import RUNTIME_CONTEXT
 
@@ -27,13 +32,16 @@ def __build_di_container() -> DIContainer:
 
 def __register_essential_dependencies(di_container: DIContainer) -> None:
     """Any default dependencies that are not component-specific should be registered here.
+    Also any dependencies that have no other dependencies should be registered here as well.
+    Ones used during DI container initialization should also be registered here.
 
     Args:
         di_container (DIContainer): Dependency injection container
     """
     # Configuration services
     di_container.register_as_self(EnvironmentConfigurationService)
-    di_container.decorate(EnvironmentConfigurationService, CachedEnvironmentConfigurationService)
+    if not RUNTIME_CONTEXT.is_test_context:  # Use caching configuration in non-test contexts
+        di_container.decorate(EnvironmentConfigurationService, CachedEnvironmentConfigurationService)
     di_container.register_as_self(ScalingGroupConfigurationsService)
 
 
@@ -43,7 +51,7 @@ def __register_aws_dependencies(di_container: DIContainer) -> None:
     Args:
         di_container (DIContainer): Dependency injection container
     """
-    # Boto3 Clients and Services
+    # AWS Clients and Services
     from app.integrations.aws.services.cloudwatch_service import CloudWatchService
     from app.integrations.aws.services.dynamodb_repository import DynamoDbTableRepository
     from app.integrations.aws.services.ec2_asg_service import Ec2AutoScalingService
@@ -52,11 +60,11 @@ def __register_aws_dependencies(di_container: DIContainer) -> None:
     from app.integrations.aws.services.sqs_service import SqsService
 
     di_container.register_as_self(CloudWatchService)
-    di_container.register(DatabaseRepositoryInterface, DynamoDbTableRepository, name="dynamodb")
     di_container.register_as_self(Ec2AutoScalingService)
     di_container.register_as_self(Ec2Service)
     di_container.register_as_self(Route53Service)
     di_container.register_as_self(SqsService)
+    di_container.register(DatabaseRepositoryInterface, DynamoDbTableRepository, name="dynamodb")
 
     # Event Handlers
     from app.handlers.aws.scaling_group_lifecycle_event_handler import AwsScalingGroupLifecycleEventHandler
@@ -73,7 +81,18 @@ def __register_handlers(di_container: DIContainer) -> None:
     # Scaling group lifecycle
     di_container.register(HandlerInterface[ScalingGroupLifecycleContext], ScalingGroupLifecycleHandler)
     # Instance lifecycle
-    # di_container.register(HandlerInterface[InstanceLifecycleContext], InstanceLifecycleHandler)
+    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceDiscoveryHandler, name="discovery")
+    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceHealthCheckHandler, name="health_check")
+    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceReadinessHandler, name="readiness")
+
+
+def __register_workflows(di_container: DIContainer) -> None:
+    """Registers workflows.
+
+    Args:
+        di_container (DIContainer): Dependency injection container
+    """
+    pass
 
 
 def __register_components_dependencies(
@@ -129,6 +148,8 @@ def bootstrap() -> DIContainer:
     __register_components_dependencies(components_directory, "app.components", di_container)
     # Register handlers
     __register_handlers(di_container)
+    # Register workflows
+    __register_workflows(di_container)
     # Mark container as final so no new registrations can be made
     di_container.finalize()
     # Return the DI container

@@ -22,4 +22,7 @@ def alike(*args: str) -> bool:
     Returns:
         bool: True if all the strings are alike, False otherwise.
     """
+    if len(args) < 2:
+        raise ValueError("At least two strings are required for comparison.")
+
     return all(normalized(args[0]) == normalized(arg) for arg in args[1:])

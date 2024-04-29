@@ -20,5 +20,10 @@ class _RuntimeContext(metaclass=Singleton):
         """Returns True if the environment is local development, False otherwise."""
         return environment.try_get_value("SG_DNS_DISCOVERY__ENVIRONMENT", "").lower() == "local"
 
+    @property
+    def is_test_context(self) -> bool:
+        """Returns True if the environment is test context, False otherwise."""
+        return environment.try_get_value(" PYTEST_CURRENT_TEST", "").lower() != ""
+
 
 RUNTIME_CONTEXT = _RuntimeContext()

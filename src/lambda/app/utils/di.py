@@ -113,7 +113,7 @@ class DIContainer:
         """Registers a an interface with an implementation in the container.
 
         Args:
-            interface (Type): Type of the interface to register.
+            interface (Type): Type to register.
             implementation (Type): Type of the implementation to register. Will be constructed when resolved.
             name (str, optional): Name of the implementation, if need to support multiple. Defaults to None.
             lifetime (DILifetimeScope, optional): Lifetime scope of the implementation. Defaults to DILifetimeScope.SCOPED.
@@ -141,7 +141,8 @@ class DIContainer:
     def register_as_self(
         self, implementation: Type[Any], name: str = "", lifetime: DILifetimeScope = DILifetimeScope.SCOPED
     ):
-        """Registers an implementation as itself in the container.
+        """Registers an implementation as itself in the container. This is a shortcut
+        for `register(...)` method when interface is the same as implementation.
 
         Args:
             implementation (Type): Type of the implementation to register.

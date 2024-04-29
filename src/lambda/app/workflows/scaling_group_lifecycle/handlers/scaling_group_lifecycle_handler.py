@@ -1,8 +1,3 @@
-from app.components.healthcheck.health_check_interface import HealthCheckInterface
-from app.components.lifecycle.instance_lifecycle_interface import InstanceLifecycleInterface
-from app.components.lifecycle.models.lifecycle_event_model_factory import LifecycleEventModelFactory
-from app.components.mutex.distributed_lock_interface import DistributedLockInterface
-from app.components.readiness.instance_readiness_interface import InstanceReadinessInterface
 from app.config.env_configuration_service import EnvironmentConfigurationService
 from app.config.sg_configuration_service import ScalingGroupConfigurationsService
 from app.contexts.instance_lifecycle_context import InstanceLifecycleContext
@@ -20,21 +15,11 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
         self,
         env_configuration_service: EnvironmentConfigurationService,
         sg_configuration_service: ScalingGroupConfigurationsService,
-        lifecycle_event_model_factory: LifecycleEventModelFactory,
-        lifecycle_service: InstanceLifecycleInterface,
-        health_check_service: HealthCheckInterface,
-        readiness_service: InstanceReadinessInterface,
-        distributed_lock_service: DistributedLockInterface,
     ) -> None:
         super().__init__()
         self.logger = get_logger()
         self.env_configuration_service = env_configuration_service
         self.sg_configuration_service = sg_configuration_service
-        self.lifecycle_event_model_factory = lifecycle_event_model_factory
-        self.lifecycle_service = lifecycle_service
-        self.health_check_service = health_check_service
-        self.readiness_service = readiness_service
-        self.distributed_lock_service = distributed_lock_service
 
     def handle(self, context: ScalingGroupLifecycleContext) -> HandlerContext:
         """Handle instance readiness lifecycle
@@ -73,7 +58,5 @@ class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
             )
 
             context.register_instance_context(instance_lifecycle_context)
-
-        # TODO: Implement the logic for handling the lifecycle event
 
         return super().handle(context)
