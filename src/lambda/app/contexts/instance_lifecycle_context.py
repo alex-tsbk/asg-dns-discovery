@@ -33,3 +33,6 @@ class InstanceLifecycleContext(HandlerContext):
 
     def __post_init__(self):
         return super().__post_init__()
+
+    def __str__(self) -> str:
+        return f"InstanceLifecycleContext(instance_id={self.instance_id}, scaling_group={self.scaling_group_config.scaling_group_name})"

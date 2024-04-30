@@ -111,7 +111,7 @@ class QuxI:
 
 
 class QuxNI:
-    def __init__(self, foo: Injectable[Foo, NamedInjectable("foo")]):  # noqa: F821
+    def __init__(self, foo: Injectable[Foo, NamedInjectable("foo")]):
         self.foo: Foo = foo
 
 

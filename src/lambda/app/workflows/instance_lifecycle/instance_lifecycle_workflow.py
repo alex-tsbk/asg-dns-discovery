@@ -10,14 +10,12 @@ class InstanceLifecycleWorkflow(WorkflowInterface[InstanceLifecycleContext]):
 
     def __init__(
         self,
-        instance_discovery_handler: Injectable[HandlerBase[InstanceLifecycleContext], NamedInjectable("discovery")],  # noqa: F821
-        instance_health_check_handler: Injectable[HandlerBase[InstanceLifecycleContext], NamedInjectable("health_check")],  # noqa: F821
-        instance_readiness_handler: Injectable[HandlerBase[InstanceLifecycleContext], NamedInjectable("readiness")],  # noqa: F821
+        instance_discovery_handler: Injectable[HandlerBase[InstanceLifecycleContext], NamedInjectable("discovery")],
+        instance_health_check_handler: Injectable[HandlerBase[InstanceLifecycleContext], NamedInjectable("health_check")],
+        instance_readiness_handler: Injectable[HandlerBase[InstanceLifecycleContext], NamedInjectable("readiness")],
     ):  # fmt: skip
         # Chain the handlers into a pipeline
-        self.pipeline = instance_discovery_handler \
-            .chain(instance_health_check_handler) \
-            .chain(instance_readiness_handler)  # fmt: skip
+        self.pipeline = instance_discovery_handler >> instance_readiness_handler >> instance_health_check_handler
 
     def handle(self, context: InstanceLifecycleContext) -> HandlerContext:
         """Handles the request by invoking chained handlers in workflow pipeline.

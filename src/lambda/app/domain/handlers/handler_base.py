@@ -34,3 +34,15 @@ class HandlerBase(HandlerInterface[T_contra]):
             return self._successor.handle(context)
         # Return end state context
         return context
+
+    def __rshift__(self, other: Self) -> Self:
+        """Overloads the >> operator to chain the handlers.
+
+        Args:
+            other (HandlerInterface[T_contra]): Next handler in the pipeline.
+                Enforces to have the same context type.
+
+        Returns:
+            HandlerInterface[T_contra]: Returns the successor handler.
+        """
+        return self.chain(other)

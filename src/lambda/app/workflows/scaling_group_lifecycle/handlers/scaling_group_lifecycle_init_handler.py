@@ -8,7 +8,7 @@ from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 
 
-class ScalingGroupLifecycleHandler(HandlerBase[ScalingGroupLifecycleContext]):
+class ScalingGroupLifecycleInitHandler(HandlerBase[ScalingGroupLifecycleContext]):
     """Service responsible for handling lifecycle event"""
 
     def __init__(

@@ -2,21 +2,12 @@ import importlib.util
 import os
 from importlib.machinery import ModuleSpec
 
-from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
-from app.config.env_configuration_service import CachedEnvironmentConfigurationService, EnvironmentConfigurationService
-from app.config.sg_configuration_service import ScalingGroupConfigurationsService
 from app.contexts.instance_lifecycle_context import InstanceLifecycleContext
+from app.contexts.runtime_context import RUNTIME_CONTEXT
 from app.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.domain.handlers.handler_base import HandlerBase
-from app.domain.handlers.handler_interface import HandlerInterface
-from app.utils.di import DIContainer
+from app.utils.di import DIContainer, DILifetimeScope
 from app.utils.logging import get_logger
-from app.workflows.instance_lifecycle.handlers.instance_discovery_handler import InstanceDiscoveryHandler
-from app.workflows.instance_lifecycle.handlers.instance_health_check_handler import InstanceHealthCheckHandler
-from app.workflows.instance_lifecycle.handlers.instance_readiness_handler import InstanceReadinessHandler
-from app.workflows.scaling_group_lifecycle.handlers.scaling_group_lifecycle_handler import ScalingGroupLifecycleHandler
-
-from .contexts.runtime_context import RUNTIME_CONTEXT
 
 logger = get_logger()
 
@@ -38,11 +29,16 @@ def __register_essential_dependencies(di_container: DIContainer) -> None:
     Args:
         di_container (DIContainer): Dependency injection container
     """
+    from app.config.env_configuration_service import EnvironmentConfigurationService
+    from app.config.sg_configuration_service import ScalingGroupConfigurationsService
+
     # Configuration services
+    di_container.register_as_self(ScalingGroupConfigurationsService)
     di_container.register_as_self(EnvironmentConfigurationService)
     if not RUNTIME_CONTEXT.is_test_context:  # Use caching configuration in non-test contexts
+        from app.config.env_configuration_service import CachedEnvironmentConfigurationService
+
         di_container.decorate(EnvironmentConfigurationService, CachedEnvironmentConfigurationService)
-    di_container.register_as_self(ScalingGroupConfigurationsService)
 
 
 def __register_aws_dependencies(di_container: DIContainer) -> None:
@@ -52,6 +48,7 @@ def __register_aws_dependencies(di_container: DIContainer) -> None:
         di_container (DIContainer): Dependency injection container
     """
     # AWS Clients and Services
+    from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
     from app.integrations.aws.services.cloudwatch_service import CloudWatchService
     from app.integrations.aws.services.dynamodb_repository import DynamoDbTableRepository
     from app.integrations.aws.services.ec2_asg_service import Ec2AutoScalingService
@@ -78,12 +75,22 @@ def __register_handlers(di_container: DIContainer) -> None:
     Args:
         di_container (DIContainer): Dependency injection container
     """
-    # Scaling group lifecycle
-    di_container.register(HandlerInterface[ScalingGroupLifecycleContext], ScalingGroupLifecycleHandler)
+    from app.workflows.instance_lifecycle.handlers.instance_discovery_handler import InstanceDiscoveryHandler
+    from app.workflows.instance_lifecycle.handlers.instance_health_check_handler import InstanceHealthCheckHandler
+    from app.workflows.instance_lifecycle.handlers.instance_readiness_handler import InstanceReadinessHandler
+    from app.workflows.scaling_group_lifecycle.handlers.scaling_group_lifecycle_dispatch_handler import (
+        ScalingGroupLifecycleDispatchHandler,
+    )  # Scaling group lifecycle
+    from app.workflows.scaling_group_lifecycle.handlers.scaling_group_lifecycle_init_handler import (
+        ScalingGroupLifecycleInitHandler,
+    )
+
+    di_container.register(HandlerBase[ScalingGroupLifecycleContext], ScalingGroupLifecycleInitHandler, name="init", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(HandlerBase[ScalingGroupLifecycleContext], ScalingGroupLifecycleDispatchHandler, name="dispatch", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
     # Instance lifecycle
-    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceDiscoveryHandler, name="discovery")
-    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceHealthCheckHandler, name="health_check")
-    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceReadinessHandler, name="readiness")
+    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceDiscoveryHandler, name="discovery", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceHealthCheckHandler, name="health_check", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceReadinessHandler, name="readiness", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
 
 
 def __register_workflows(di_container: DIContainer) -> None:
@@ -92,7 +99,14 @@ def __register_workflows(di_container: DIContainer) -> None:
     Args:
         di_container (DIContainer): Dependency injection container
     """
-    pass
+    from app.workflows.instance_lifecycle.instance_lifecycle_workflow import InstanceLifecycleWorkflow
+    from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_workflow import ScalingGroupLifecycleWorkflow
+    from app.workflows.workflow_interface import WorkflowInterface
+
+    # Workflow for handling Scaling Group lifecycle events
+    di_container.register(WorkflowInterface[ScalingGroupLifecycleContext], ScalingGroupLifecycleWorkflow)
+    # Workflow for handling Instance lifecycle events - Discovery, Health Check, Readiness, etc.
+    di_container.register(WorkflowInterface[InstanceLifecycleContext], InstanceLifecycleWorkflow)
 
 
 def __register_components_dependencies(

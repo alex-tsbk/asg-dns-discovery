@@ -4,10 +4,10 @@ from typing import Any
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleEventModel
 from app.components.lifecycle.models.lifecycle_event_model_factory import LifecycleEventModelFactory
 from app.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
-from app.domain.handlers.handler_interface import HandlerInterface
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
+from app.workflows.workflow_interface import WorkflowInterface
 
 
 class AwsScalingGroupLifecycleEventHandler:
@@ -16,10 +16,10 @@ class AwsScalingGroupLifecycleEventHandler:
     def __init__(
         self,
         lifecycle_event_model_factory: LifecycleEventModelFactory,
-        scaling_group_lifecycle_handler: HandlerInterface[ScalingGroupLifecycleContext],
+        scaling_group_lifecycle_workflow: WorkflowInterface[ScalingGroupLifecycleContext],
     ):
         self.lifecycle_event_model_factory = lifecycle_event_model_factory
-        self.scaling_group_lifecycle_handler = scaling_group_lifecycle_handler
+        self.scaling_group_lifecycle_workflow = scaling_group_lifecycle_workflow
 
     def handle(self, event: dict[str, Any], context: Any) -> dict[str, Any]:
         """Lambda handler function to be invoked by AWS SNS
@@ -165,7 +165,7 @@ class AwsScalingGroupLifecycleEventHandler:
             logger.info(
                 f"Handling lifecycle event for AutoScalingGroup: {sns_message['AutoScalingGroupName']} and EC2 instance: {sns_message['EC2InstanceId']}"
             )
-            result = self.scaling_group_lifecycle_handler.handle(scaling_group_lifecycle_context)
+            result = self.scaling_group_lifecycle_workflow.handle(scaling_group_lifecycle_context)
         except Exception as e:
             # TODO: Submit failure data point to CloudWatch
             logger.error(f"Error handling lifecycle event: {str(e)}")

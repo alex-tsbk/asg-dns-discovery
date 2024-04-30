@@ -1,5 +1,6 @@
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
-from typing import Any, Callable, ClassVar, Generator, NoReturn
+from time import sleep
+from typing import Any, Callable, ClassVar, Generator
 
 from app.components.concurrency.task_scheduler_interface import TaskSchedulerInterface
 
@@ -26,13 +27,17 @@ class ConcurrentTaskScheduler(TaskSchedulerInterface):
         CONCURRENT_THREADS_HARD_LIMIT,
     )
 
+    # Tracks workers in use at class level to prevent abuse of the thread pool
+    # across all concurrent task scheduler instances
+    workers_in_use: int = 0
+
     def __init__(self):
         """Initializes the task scheduler with a thread pool executor."""
         self.logger = get_logger()
         self.executor = ThreadPoolExecutor(max_workers=self.max_workers)
-        self.futures: list[Future[NoReturn]] = []
+        self.futures: list[Future[Any]] = []
 
-    def place(self, task: Callable[..., NoReturn], *args: Any, **kwargs: Any):
+    def place(self, task: Callable[..., Any], *args: Any, **kwargs: Any):
         """Immediately submits an I/O-bound task for execution.
 
         Args:
@@ -40,10 +45,16 @@ class ConcurrentTaskScheduler(TaskSchedulerInterface):
             *args: Task arguments
             **kwargs: Task keyword arguments
         """
-        future: Future[NoReturn] = self.executor.submit(task, *args, **kwargs)
-        self.futures.append(future)
+        while self.workers_in_use > self.max_workers:
+            # Block main thread until a worker is available,
+            # then submit the task for execution
+            sleep(0.1)
 
-    def retrieve(self) -> Generator[Future[NoReturn] | Exception, None, None]:
+        future: Future[Any] = self.executor.submit(task, *args, **kwargs)
+        self.futures.append(future)
+        self.workers_in_use += 1
+
+    def retrieve(self) -> Generator[Future[Any] | Exception, None, None]:
         """A generator that yields completed tasks as they become available.
 
         Yields:
@@ -60,6 +71,9 @@ class ConcurrentTaskScheduler(TaskSchedulerInterface):
                 except Exception as exc:
                     self.logger.error(f"Task execution failed: {exc}")
                     yield exc
+                finally:
+                    # Remove the completed future and decrement the workers in use
+                    self.workers_in_use -= 1
                 self.futures.remove(future)
 
     def shutdown(self, wait: bool = True):

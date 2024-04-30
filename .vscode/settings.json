@@ -60,7 +60,7 @@
   ],
   "flake8.args": [
     "--max-line-length=255",
-    "--ignore=E402,F841,F401,E302,E305,W503"
+    "--ignore=E402,F841,F401,E302,E305,W503,F821"
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,

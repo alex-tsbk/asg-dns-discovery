@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 
 from app.config.env_configuration_service import EnvironmentConfigurationService
-from app.domain.entities.envelope import Envelope
+from app.events.envelope import Envelope
 from app.integrations.aws import boto_factory
 from app.utils.exceptions import CloudProviderException
 from app.utils.logging import get_logger

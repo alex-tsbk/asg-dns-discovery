@@ -1,5 +1,5 @@
 from app.components.brokers.message_broker_interface import MessageBrokerInterface
-from app.domain.entities.envelope import Envelope
+from app.events.envelope import Envelope
 from app.integrations.aws.services.sqs_service import SqsService
 
 

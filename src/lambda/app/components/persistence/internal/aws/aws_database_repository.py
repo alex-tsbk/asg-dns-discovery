@@ -10,7 +10,7 @@ class AwsDatabaseRepository(DatabaseRepositoryInterface):
 
     def __init__(
         self,
-        dynamodb_repository: Injectable[DatabaseRepositoryInterface, NamedInjectable("dynamodb")],  # noqa: F821
+        dynamodb_repository: Injectable[DatabaseRepositoryInterface, NamedInjectable("dynamodb")],
     ):
         self.logger = get_logger()
         self.repository: DatabaseRepositoryInterface = dynamodb_repository
