@@ -2,10 +2,13 @@ import argparse
 import sys
 from typing import Any
 
+from debug.seeders.aws.ec2_data_seeder import Ec2DataSeeder
+from debug.seeders.aws.networking_seeder import NetworkingSeeder, NetworkingSeederResponse
 from moto import mock_aws
 
 from . import utils
-from .seeders.dynamo_db_data_seeder import DynamoDBDataSeeder
+from .seeders.aws import constants
+from .seeders.aws.dynamo_db_data_seeder import DynamoDBDataSeeder
 
 parser = argparse.ArgumentParser(
     prog="Scaling Group DNS Discovery Application Debugger",
@@ -65,9 +68,31 @@ def debug_event_request_handler(event: dict[str, Any]):
 
     with mock_aws(config={"core": {"reset_boto3_session": False}}):
         # Load seeders to set up infrastructure
+        networking_seeder = NetworkingSeeder()
+        networking_info: NetworkingSeederResponse = networking_seeder.setup_aws_networking()
         dynamodb_seeder = DynamoDBDataSeeder()
         dynamodb_seeder.patch_environment()
         dynamodb_seeder.seed_default_data()
+        ec2_seeder = Ec2DataSeeder()
+        # Provisions 2 ASGs with 2 instances each
+        asg_data = ec2_seeder.seed_data_for_sg_lch(networking_info)
+
+        # During lifecycle events, we'll be dealing in the context of a single ASG,
+        # however, there might be multiple DNS configurations for the ASG. To test things
+        # reliably, we're basing scenarios on the assumption that there is already 1 Instance
+        # in a give ASG, and for newly launched instances, or when terminating one, we'll be
+        # using "Primary" EC2 instance from the constants.py file.
+        # This is to ensure that we have a reliable instance to test the DNS configurations against.
+        # This is a bit of a hack, but it's a necessary one.
+
+        # Patch event with instance ids from data seeded, as it's impossible to predict instance ids
+        event = utils.str_replace(
+            event, constants.INSTANCE_ID_PRIMARY, asg_data.scaling_groups[constants.ASG_PRIMARY][0]
+        )
+        event = utils.str_replace(
+            event, constants.INSTANCE_ID_SECONDARY, asg_data.scaling_groups[constants.ASG_PRIMARY][1]
+        )
+
         # Handle event
         main.event_request_handler(event, None)
 

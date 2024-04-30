@@ -64,3 +64,19 @@ def wrap(cloud_provider: str, wrapper_name: str, message: dict[str, Any]) -> dic
     if not wrapper_text:
         raise Exception(f"Unable to load wrapper for cloud provider: {event_path}")
     return json.loads(wrapper_text.replace("{%MESSAGE%}", json.dumps(message).replace('"', '\\"')))
+
+
+def str_replace(source: dict[str, Any], token: str, new_value: str) -> dict[str, Any]:
+    """Performs string replacement on the source dictionary.
+
+    Args:
+        source (dict[str, Any]): Source dictionary that contains the string to replace.
+        token (str): Token to replace.
+        new_value (str): New value to replace the token with.
+
+    Returns:
+        dict[str, Any]: Original source dictionary with the token replaced with the new value.
+    """
+    source_str = json.dumps(source)
+    new_str = source_str.replace(token, new_value)
+    return json.loads(new_str)

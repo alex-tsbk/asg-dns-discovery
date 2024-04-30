@@ -8,6 +8,6 @@
     "AutoScalingGroupName": "test-asg",
     "Service": "AWS Auto Scaling",
     "Time": "2024-03-23T03:26:43.904Z",
-    "EC2InstanceId": "i-05629ab7d9287e205",
+    "EC2InstanceId": "i-12345678901234567",
     "LifecycleActionToken": "465e0162-e6af-4786-b4e8-bb544ae58790"
 }
