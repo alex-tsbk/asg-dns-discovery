@@ -1,3 +1,4 @@
+import threading
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from time import sleep
 from typing import Any, Callable, ClassVar, Generator
@@ -6,6 +7,7 @@ from app.components.concurrency.task_scheduler_interface import TaskSchedulerInt
 
 # from app.context import RUNTIME_CONTEXT
 from app.utils import environment
+from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 
 # Maximum number of concurrent threads to run in the thread pool
@@ -30,6 +32,7 @@ class ConcurrentTaskScheduler(TaskSchedulerInterface):
     # Tracks workers in use at class level to prevent abuse of the thread pool
     # across all concurrent task scheduler instances
     workers_in_use: int = 0
+    worker_in_use_lock = threading.Lock()
 
     def __init__(self):
         """Initializes the task scheduler with a thread pool executor."""
@@ -45,14 +48,26 @@ class ConcurrentTaskScheduler(TaskSchedulerInterface):
             *args: Task arguments
             **kwargs: Task keyword arguments
         """
-        while self.workers_in_use > self.max_workers:
+        while True:
+            # Double-check locking to ensure the worker limit is not exceeded
+            if self.workers_in_use < self.max_workers:
+                with self.worker_in_use_lock:
+                    if self.workers_in_use < self.max_workers:
+                        self.workers_in_use += 1
+                        break
             # Block main thread until a worker is available,
             # then submit the task for execution
-            sleep(0.1)
+            self.logger.warning(
+                f"Thread pool is full: {self.workers_in_use}, waiting for a worker to become available.."
+            )
+            sleep(0.01)  # 10 ms
 
-        future: Future[Any] = self.executor.submit(task, *args, **kwargs)
-        self.futures.append(future)
-        self.workers_in_use += 1
+        try:
+            future: Future[Any] = self.executor.submit(task, *args, **kwargs)
+            self.futures.append(future)
+        except Exception as exc:
+            self.workers_in_use -= 1
+            raise BusinessException(f"Task submission failed: {exc}")
 
     def retrieve(self) -> Generator[Future[Any] | Exception, None, None]:
         """A generator that yields completed tasks as they become available.

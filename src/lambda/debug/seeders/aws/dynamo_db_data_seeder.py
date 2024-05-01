@@ -7,6 +7,8 @@ import boto3
 from mypy_boto3_dynamodb import DynamoDBServiceResource
 from mypy_boto3_dynamodb.service_resource import Table
 
+from . import constants
+
 
 class DynamoDBDataSeeder:
 
@@ -65,8 +67,8 @@ class DynamoDBDataSeeder:
                 },
                 "readiness": {
                     "enabled": True,
-                    "tag_key": "asg-ready",
-                    "tag_value": "true",
+                    "tag_key": constants.EC2_INSTANCE_READY_TAG_KEY,
+                    "tag_value": constants.EC2_INSTANCE_READY_TAG_VALUE,
                     "timeout_seconds": 300,
                     "interval_seconds": 5,
                 },

@@ -9,6 +9,7 @@ class HandlerBase(HandlerInterface[T_contra]):
     """Base class for all handlers"""
 
     def __init__(self):
+        self._predecessor: Self | None = None
         self._successor: Self | None = None
 
     def chain(self, successor: Self) -> Self:
@@ -22,7 +23,16 @@ class HandlerBase(HandlerInterface[T_contra]):
             HandlerInterface[T_contra]: Returns the successor handler.
         """
         self._successor = successor
-        return self
+        successor._predecessor = self
+        return successor
+
+    def head(self) -> Self:
+        """Returns the first handler in the pipeline.
+
+        Returns:
+            HandlerInterface[T_contra]: Returns the first handler in the pipeline.
+        """
+        return self._predecessor.head() if self._predecessor else self
 
     def handle(self, context: T_contra) -> HandlerContext:
         """Passes the request to the next handler in the pipeline.
@@ -40,9 +50,8 @@ class HandlerBase(HandlerInterface[T_contra]):
 
         Args:
             other (HandlerInterface[T_contra]): Next handler in the pipeline.
-                Enforces to have the same context type.
 
         Returns:
-            HandlerInterface[T_contra]: Returns the successor handler.
+            HandlerInterface[T_contra]: Returns the successor handler, so that the chaining can continue.
         """
         return self.chain(other)

@@ -25,9 +25,9 @@
                 "--cloud-provider",
                 "aws",
                 "--event-family",
-                "asg-lifecycle",
+                "${input:eventFamily}",
                 "--event-name",
-                "ec2_instance_terminating",
+                "${input:eventName}",
                 "--event-wrapper-name",
                 "sns-wrapper"
             ],
@@ -51,5 +51,25 @@
             }
         }
     ],
-    "inputs": []
+    "inputs": [
+        {
+            "type": "pickString",
+            "id": "eventFamily",
+            "description": "Event Family",
+            "default": "asg-lifecycle",
+            "options": [
+                "asg-lifecycle",
+            ]
+        },
+        {
+            "type": "pickString",
+            "id": "eventName",
+            "description": "Event Name",
+            "default": "ec2_instance_launching",
+            "options": [
+                "ec2_instance_launching",
+                "ec2_instance_terminating",
+            ]
+        }
+    ]
 }

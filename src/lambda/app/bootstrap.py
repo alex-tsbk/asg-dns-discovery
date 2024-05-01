@@ -78,18 +78,19 @@ def __register_handlers(di_container: DIContainer) -> None:
     from app.workflows.instance_lifecycle.handlers.instance_discovery_handler import InstanceDiscoveryHandler
     from app.workflows.instance_lifecycle.handlers.instance_health_check_handler import InstanceHealthCheckHandler
     from app.workflows.instance_lifecycle.handlers.instance_readiness_handler import InstanceReadinessHandler
-    from app.workflows.scaling_group_lifecycle.handlers.scaling_group_lifecycle_dispatch_handler import (
-        ScalingGroupLifecycleDispatchHandler,
-    )  # Scaling group lifecycle
     from app.workflows.scaling_group_lifecycle.handlers.scaling_group_lifecycle_init_handler import (
         ScalingGroupLifecycleInitHandler,
     )
+    from app.workflows.scaling_group_lifecycle.handlers.scaling_group_lifecycle_metadata_handler import (
+        ScalingGroupLifecycleMetadataHandler,
+    )
 
+    # Scaling group lifecycle
     di_container.register(HandlerBase[ScalingGroupLifecycleContext], ScalingGroupLifecycleInitHandler, name="init", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
-    di_container.register(HandlerBase[ScalingGroupLifecycleContext], ScalingGroupLifecycleDispatchHandler, name="dispatch", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(HandlerBase[ScalingGroupLifecycleContext], ScalingGroupLifecycleMetadataHandler, name="metadata", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
     # Instance lifecycle
     di_container.register(HandlerBase[InstanceLifecycleContext], InstanceDiscoveryHandler, name="discovery", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
-    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceHealthCheckHandler, name="health_check", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceHealthCheckHandler, name="health-check", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
     di_container.register(HandlerBase[InstanceLifecycleContext], InstanceReadinessHandler, name="readiness", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
 
 

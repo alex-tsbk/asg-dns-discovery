@@ -11,10 +11,12 @@ class ScalingGroupLifecycleWorkflow(WorkflowInterface[ScalingGroupLifecycleConte
     def __init__(
         self,
         scaling_group_lifecycle_init_handler: Injectable[HandlerBase[ScalingGroupLifecycleContext], NamedInjectable("init")],
-        scaling_group_lifecycle_dispatch_handler: Injectable[HandlerBase[ScalingGroupLifecycleContext], NamedInjectable("dispatch")],
+        scaling_group_lifecycle_metadata_handler: Injectable[HandlerBase[ScalingGroupLifecycleContext], NamedInjectable("metadata")],
     ):  # fmt: skip
         # Chain the handlers into a pipeline
-        self.pipeline = scaling_group_lifecycle_init_handler >> scaling_group_lifecycle_dispatch_handler
+        self.pipeline = (
+            scaling_group_lifecycle_init_handler >> scaling_group_lifecycle_metadata_handler
+        ).head()  # Need to call head() to get the first handler in the pipeline
 
     def handle(self, context: ScalingGroupLifecycleContext) -> HandlerContext:
         """Handles the request by invoking chained handlers in workflow pipeline.

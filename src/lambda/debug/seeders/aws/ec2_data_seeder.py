@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
+from typing import Iterable
 
 import boto3
+from app.components.concurrency.internal.concurrent_task_scheduler import ConcurrentTaskScheduler
 from debug.seeders.aws.networking_seeder import NetworkingSeederResponse
+from debug.utils import with_delay
 from mypy_boto3_autoscaling import AutoScalingClient
 from mypy_boto3_ec2 import EC2Client
 
@@ -18,6 +21,8 @@ class Ec2DataSeeder:
     def __init__(self):
         self.ec2_client: EC2Client = boto3.client("ec2")  # type: ignore
         self.asg_client: AutoScalingClient = boto3.client("autoscaling")  # type: ignore
+        # We'll use this internally to schedule updating ec2 tags in 5 seconds in the future
+        self.task_scheduler = ConcurrentTaskScheduler()
         # Set some default that we don't explicitly use,
         # thus care very little about
         self.launch_configuration_name = "test-lc"
@@ -44,6 +49,9 @@ class Ec2DataSeeder:
         self.__create_instance_in_auto_scaling_group(constants.ASG_SECONDARY, networking_info, seeded_data)
         self.__create_instance_in_auto_scaling_group(constants.ASG_SECONDARY, networking_info, seeded_data)
 
+        # Schedule updating ec2 instances tags in 10 seconds in the future, so code can progress to handling 'readiness'
+        self.task_scheduler.place(self.__mark_instance_ready, seeded_data.scaling_groups[constants.ASG_PRIMARY])
+
         # Attach instances to auto-scaling groups
         for asg, instances in seeded_data.scaling_groups.items():
             # Attach instances to auto-scaling group
@@ -51,6 +59,8 @@ class Ec2DataSeeder:
                 AutoScalingGroupName=asg,
                 InstanceIds=instances,
             )
+
+        self.task_scheduler
 
         return seeded_data
 
@@ -107,3 +117,20 @@ class Ec2DataSeeder:
         shared_state.scaling_groups[asg_name].append(instance_id)
 
         return instance_id
+
+    @with_delay(10)
+    def __mark_instance_ready(self, instance_ids: Iterable[str]):
+        """Updates the instance tags to mark them as ready. To simulate real environment, we'll delay this by 10 seconds.
+
+        Args:
+            instance_ids (Iterable[str]): The instance IDs to mark as ready.
+        """
+        self.ec2_client.create_tags(
+            Resources=list(instance_ids),
+            Tags=[
+                {
+                    "Key": constants.EC2_INSTANCE_READY_TAG_KEY,
+                    "Value": constants.EC2_INSTANCE_READY_TAG_VALUE,
+                },
+            ],
+        )

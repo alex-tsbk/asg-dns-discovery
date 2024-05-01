@@ -1,6 +1,8 @@
+import functools
 import json
 import os
-from typing import Any
+from time import sleep
+from typing import Any, Callable
 
 
 def get_debug_root_path():
@@ -80,3 +82,25 @@ def str_replace(source: dict[str, Any], token: str, new_value: str) -> dict[str,
     source_str = json.dumps(source)
     new_str = source_str.replace(token, new_value)
     return json.loads(new_str)
+
+
+def with_delay(delay_seconds: int):
+    """Schedules the function to run in the future.
+
+    Args:
+        delay_seconds (int): Number of seconds to wait before running the function.
+        func (Any): Function to run in the future.
+
+    Returns:
+        Any: Function to run in the future.
+    """
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any):
+            sleep(delay_seconds)
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator

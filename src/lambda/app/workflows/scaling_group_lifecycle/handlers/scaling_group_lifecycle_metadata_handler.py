@@ -12,16 +12,16 @@ from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 
 
-class ScalingGroupLifecycleDispatchHandler(HandlerBase[ScalingGroupLifecycleContext]):
+class ScalingGroupLifecycleMetadataHandler(HandlerBase[ScalingGroupLifecycleContext]):
     """Service responsible for handling lifecycle event"""
 
     def __init__(
         self,
         task_scheduler_service: TaskSchedulerInterface,
         instance_discovery_service: InstanceDiscoveryInterface,
-        instance_health_check_handler: Injectable[HandlerBase[InstanceLifecycleContext], NamedInjectable("health_check")],
         instance_discovery_handler: Injectable[HandlerBase[InstanceLifecycleContext], NamedInjectable("discovery")],
         instance_readiness_handler: Injectable[HandlerBase[InstanceLifecycleContext], NamedInjectable("readiness")],
+        instance_health_check_handler: Injectable[HandlerBase[InstanceLifecycleContext], NamedInjectable("health-check")],
     ) -> None:  # fmt: skip
         super().__init__()
         self.logger = get_logger()
@@ -44,8 +44,8 @@ class ScalingGroupLifecycleDispatchHandler(HandlerBase[ScalingGroupLifecycleCont
 
         if event.transition == LifecycleTransition.LAUNCHING:
             instance_pipeline = (
-                self.instance_discovery_handler >> self.instance_health_check_handler >> self.instance_readiness_handler
-            )
+                self.instance_discovery_handler >> self.instance_readiness_handler >> self.instance_health_check_handler
+            ).head()  # Calling head() is necessary to get the first handler in the pipeline, instead of the last one
 
         if event.transition == LifecycleTransition.DRAINING:
             instance_pipeline = self.instance_discovery_handler
