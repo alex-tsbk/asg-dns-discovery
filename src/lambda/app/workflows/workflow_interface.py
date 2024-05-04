@@ -9,7 +9,7 @@ class WorkflowInterface(HandlerInterface[T_contra], metaclass=ABCMeta):
     Interface for all workflows. This is a specialization of the HandlerInterface.
     Opposed to HandlerInterface direct descendants responsible for performing a single task,
     workflows are responsible for orchestrating multiple tasks. This is achieved by chaining
-    multiple handlers into a pipeline. The pipeline is a Chain of Responsibility pattern.
+    multiple steps into a pipeline. The pipeline is a Chain of Responsibility pattern.
     """
 
     @abstractmethod

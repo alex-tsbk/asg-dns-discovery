@@ -5,7 +5,7 @@ from app.domain.handlers.handler_protocol import HandlerProtocol
 from app.utils.di import DIContainer
 from app.utils.exceptions import BusinessException
 
-from .bootstrap import bootstrap
+from . import startup
 
 
 def event_request_handler(*args: Any, **kwargs: Any) -> Any:
@@ -17,7 +17,7 @@ def event_request_handler(*args: Any, **kwargs: Any) -> Any:
         Any: Response from the handler
     """
     # Bootstrap the application
-    di_container: DIContainer = bootstrap()
+    di_container: DIContainer = startup.build_container()
 
     # Placeholder for the handler that will be loaded based on the cloud provider
     handler: HandlerProtocol | None = None
@@ -43,4 +43,4 @@ def reconciliation_handler(*args: Any, **kwargs: Any) -> Any:
     Returns:
         Any: Response from the handler
     """
-    bootstrap()
+    startup.build_container()

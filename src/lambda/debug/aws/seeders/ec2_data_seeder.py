@@ -3,12 +3,12 @@ from typing import Iterable
 
 import boto3
 from app.components.concurrency.internal.concurrent_task_scheduler import ConcurrentTaskScheduler
-from debug.seeders.aws.networking_seeder import NetworkingSeederResponse
+from debug.aws.seeders.networking_seeder import NetworkingSeederResponse
 from debug.utils import with_delay
 from mypy_boto3_autoscaling import AutoScalingClient
 from mypy_boto3_ec2 import EC2Client
 
-from . import constants
+from ...aws.seeders import constants
 
 
 @dataclass

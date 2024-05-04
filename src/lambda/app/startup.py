@@ -2,12 +2,12 @@ import importlib.util
 import os
 from importlib.machinery import ModuleSpec
 
-from app.contexts.instance_lifecycle_context import InstanceLifecycleContext
+from app.components.lifecycle.models.lifecycle_event_model import LifecycleTransition
 from app.contexts.runtime_context import RUNTIME_CONTEXT
-from app.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
-from app.domain.handlers.handler_base import HandlerBase
 from app.utils.di import DIContainer, DILifetimeScope
 from app.utils.logging import get_logger
+from app.workflows.instance_lifecycle.instance_lifecycle_step import InstanceLifecycleStep
+from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 
 logger = get_logger()
 
@@ -75,23 +75,24 @@ def __register_handlers(di_container: DIContainer) -> None:
     Args:
         di_container (DIContainer): Dependency injection container
     """
-    from app.workflows.instance_lifecycle.handlers.instance_discovery_handler import InstanceDiscoveryHandler
-    from app.workflows.instance_lifecycle.handlers.instance_health_check_handler import InstanceHealthCheckHandler
-    from app.workflows.instance_lifecycle.handlers.instance_readiness_handler import InstanceReadinessHandler
-    from app.workflows.scaling_group_lifecycle.handlers.scaling_group_lifecycle_init_handler import (
+    from app.workflows.instance_lifecycle.steps.instance_lifecycle_healthcheck_step import InstanceHealthCheckHandler
+    from app.workflows.instance_lifecycle.steps.instance_lifecycle_load_metadata_step import InstanceMetadataLoaderStep
+    from app.workflows.instance_lifecycle.steps.instance_lifecycle_readiness_step import InstanceReadinessHandler
+    from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_step import ScalingGroupLifecycleStep
+    from app.workflows.scaling_group_lifecycle.steps.scaling_group_lifecycle_init_handler import (
         ScalingGroupLifecycleInitHandler,
     )
-    from app.workflows.scaling_group_lifecycle.handlers.scaling_group_lifecycle_metadata_handler import (
+    from app.workflows.scaling_group_lifecycle.steps.scaling_group_lifecycle_metadata_handler import (
         ScalingGroupLifecycleMetadataHandler,
     )
 
     # Scaling group lifecycle
-    di_container.register(HandlerBase[ScalingGroupLifecycleContext], ScalingGroupLifecycleInitHandler, name="init", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
-    di_container.register(HandlerBase[ScalingGroupLifecycleContext], ScalingGroupLifecycleMetadataHandler, name="metadata", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleInitHandler, name="init", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleMetadataHandler, name="metadata", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
     # Instance lifecycle
-    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceDiscoveryHandler, name="discovery", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
-    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceHealthCheckHandler, name="health-check", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
-    di_container.register(HandlerBase[InstanceLifecycleContext], InstanceReadinessHandler, name="readiness", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(InstanceLifecycleStep, InstanceMetadataLoaderStep, name="metadata-loader", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(InstanceLifecycleStep, InstanceReadinessHandler, name="readiness-check", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(InstanceLifecycleStep, InstanceHealthCheckHandler, name="health-check", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
 
 
 def __register_workflows(di_container: DIContainer) -> None:
@@ -100,14 +101,17 @@ def __register_workflows(di_container: DIContainer) -> None:
     Args:
         di_container (DIContainer): Dependency injection container
     """
-    from app.workflows.instance_lifecycle.instance_lifecycle_workflow import InstanceLifecycleWorkflow
+    from app.workflows.instance_lifecycle.instance_launching_workflow import InstanceLaunchingLifecycleWorkflow
+    from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
+    from app.workflows.instance_lifecycle.instance_terminating_workflow import InstanceTerminatingLifecycleWorkflow
     from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_workflow import ScalingGroupLifecycleWorkflow
     from app.workflows.workflow_interface import WorkflowInterface
 
     # Workflow for handling Scaling Group lifecycle events
     di_container.register(WorkflowInterface[ScalingGroupLifecycleContext], ScalingGroupLifecycleWorkflow)
-    # Workflow for handling Instance lifecycle events - Discovery, Health Check, Readiness, etc.
-    di_container.register(WorkflowInterface[InstanceLifecycleContext], InstanceLifecycleWorkflow)
+    # Workflows for handling Instance Launching & Terminating lifecycle events
+    di_container.register(WorkflowInterface[InstanceLifecycleContext], InstanceLaunchingLifecycleWorkflow, name=LifecycleTransition.LAUNCHING.value, lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(WorkflowInterface[InstanceLifecycleContext], InstanceTerminatingLifecycleWorkflow, name=LifecycleTransition.DRAINING.value, lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
 
 
 def __register_components_dependencies(
@@ -139,8 +143,13 @@ def __register_components_dependencies(
                 logger.debug(f"Registered dependencies from component: {component_name} ('{component_path}')")
 
 
-def bootstrap() -> DIContainer:
+def build_container(finalize: bool = True) -> DIContainer:
     """Bootstraps the application and returns the dependency injection container.
+
+    Args:
+        finalize (bool): Whether to finalize the container after registration. Defaults to True.
+            The only time this should be set to False is when running in the tests context,
+            to allow injecting mocks and stubs that are test-specific.
 
     Returns:
         DIContainer: Dependency injection container with all dependencies registered.
@@ -166,6 +175,7 @@ def bootstrap() -> DIContainer:
     # Register workflows
     __register_workflows(di_container)
     # Mark container as final so no new registrations can be made
-    di_container.finalize()
+    if finalize:
+        di_container.finalize()
     # Return the DI container
     return di_container

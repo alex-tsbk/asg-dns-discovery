@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleEventModel
-from app.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.domain.handlers.handler_context import HandlerContext
+from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
 
 
 @dataclass(kw_only=True)

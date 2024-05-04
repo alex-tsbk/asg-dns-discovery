@@ -48,7 +48,7 @@ output "lambda_iam_role_arn" {
   value       = aws_iam_role.dns_discovery_lambda.arn
 }
 
-output "lambda_envrionment_variables" {
+output "lambda_environment_variables" {
   description = "Environment variables used for the lambda function"
-  value       = local.lambda_envrionment_variables
+  value       = local.lambda_environment_variables
 }

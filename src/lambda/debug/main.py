@@ -1,15 +1,18 @@
 import argparse
 import sys
+from datetime import UTC, datetime
 from typing import Any
 
-from debug.seeders.aws.ec2_data_seeder import Ec2DataSeeder
-from debug.seeders.aws.networking_seeder import NetworkingSeeder, NetworkingSeederResponse
+from debug.aws.seeders.ec2_data_seeder import Ec2DataSeeder
+from debug.aws.seeders.networking_seeder import NetworkingSeeder, NetworkingSeederResponse
+from debug.aws.seeders.route53_seeder import Route53Seeder
 from moto import mock_aws
 
 from . import utils
-from .seeders.aws import constants
-from .seeders.aws.dynamo_db_data_seeder import DynamoDBDataSeeder
+from .aws.seeders import constants
+from .aws.seeders.dynamo_db_data_seeder import DynamoDBDataSeeder
 
+# https://docs.python.org/3/library/argparse.html
 parser = argparse.ArgumentParser(
     prog="Scaling Group DNS Discovery Application Debugger",
     description="Debugs the Scaling Group DNS Discovery Application",
@@ -70,9 +73,14 @@ def debug_event_request_handler(event: dict[str, Any]):
         # Load seeders to set up infrastructure
         networking_seeder = NetworkingSeeder()
         networking_info: NetworkingSeederResponse = networking_seeder.setup_aws_networking()
+        # Create Route53 Hosted Zone
+        route53_seeder = Route53Seeder(domain_name="sgdnsdiscovery.com")
+        route53_info = route53_seeder.setup_route53()
+        # Seed config data
         dynamodb_seeder = DynamoDBDataSeeder()
         dynamodb_seeder.patch_environment()
-        dynamodb_seeder.seed_default_data()
+        dynamodb_seeder.seed_config_data(route53_info.hosted_zone_id)
+        # Provision EC2 instances
         ec2_seeder = Ec2DataSeeder()
         # Provisions 2 ASGs with 2 instances each
         asg_data = ec2_seeder.seed_data_for_sg_lch(networking_info)
@@ -93,8 +101,15 @@ def debug_event_request_handler(event: dict[str, Any]):
             event, constants.INSTANCE_ID_SECONDARY, asg_data.scaling_groups[constants.ASG_PRIMARY][1]
         )
 
-        # Handle event
+        # Patch bootstrap method to return the DI container, so we can decorate handlers with
+        # with Debug-able decorators (health checks service, etc)
+        utils.patch_startup()
+
+        # Handle event and measure time taken
+        time_start = datetime.now(UTC)
         main.event_request_handler(event, None)
+        time_end = datetime.now(UTC)
+        print(f"Execution time in seconds: {(time_end - time_start).total_seconds()}")
 
 
 if __name__ == "__main__":
@@ -111,4 +126,5 @@ if __name__ == "__main__":
     if args.event_family in [
         "asg-lifecycle",
     ]:
+
         debug_event_request_handler(event)

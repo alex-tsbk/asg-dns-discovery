@@ -1,8 +1,12 @@
 import functools
 import json
 import os
+from dataclasses import dataclass, field
 from time import sleep
 from typing import Any, Callable
+
+from app.components.healthcheck.health_check_interface import HealthCheckInterface
+from app.utils.di import DIContainer
 
 
 def get_debug_root_path():
@@ -104,3 +108,40 @@ def with_delay(delay_seconds: int):
         return wrapper
 
     return decorator
+
+
+@dataclass
+class PatchStartupParameters:
+    instance_should_pass_health_check: bool = field(default=True)
+
+
+def patch_startup(patch_params: PatchStartupParameters = PatchStartupParameters()):
+    """Patches the bootstrap function to return the DI container."""
+    from app import startup
+
+    # Store original build container function
+    original_build_container = startup.build_container
+
+    def patched_build_container(finalize: bool = False):
+        di_container = original_build_container(finalize=False)
+        # register custom decorators here
+        __patch_health_checks(di_container, patch_params)
+
+        # return the DI container
+        return di_container
+
+    startup.build_container = patched_build_container
+
+
+def __patch_health_checks(di_container: DIContainer, params: PatchStartupParameters):
+    """Patches the health check services based on the provided parameters."""
+
+    from debug.decorators.debug_health_check_services import (
+        FailingHealthCheckDebugService,
+        PassingHealthCheckDebugService,
+    )
+
+    if params.instance_should_pass_health_check:
+        di_container.decorate(HealthCheckInterface, PassingHealthCheckDebugService)
+    else:
+        di_container.decorate(HealthCheckInterface, FailingHealthCheckDebugService)

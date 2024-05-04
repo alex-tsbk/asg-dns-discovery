@@ -1,13 +1,13 @@
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
-from app.contexts.instance_lifecycle_context import InstanceLifecycleContext
 from app.domain.entities.instance import Instance
-from app.domain.handlers.handler_base import HandlerBase
 from app.domain.handlers.handler_context import HandlerContext
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
+from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
+from app.workflows.instance_lifecycle.instance_lifecycle_step import InstanceLifecycleStep
 
 
-class InstanceDiscoveryHandler(HandlerBase[InstanceLifecycleContext]):
+class InstanceMetadataLoaderStep(InstanceLifecycleStep):
     """Handles resolving instance metadata in the instance lifecycle"""
 
     def __init__(self, instance_discovery_service: InstanceDiscoveryInterface):

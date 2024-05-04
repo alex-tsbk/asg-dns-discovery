@@ -7,7 +7,7 @@ import boto3
 from mypy_boto3_dynamodb import DynamoDBServiceResource
 from mypy_boto3_dynamodb.service_resource import Table
 
-from . import constants
+from ...aws.seeders import constants
 
 
 class DynamoDBDataSeeder:
@@ -38,13 +38,13 @@ class DynamoDBDataSeeder:
 
     def patch_environment(self) -> None:
         """Patches the environment to allow for the data to be seeded."""
-        # Mocks the environment variables to use DynamoDB (see ~/lambda-shared.tf -> lambda_envrionment_variables)
+        # Mocks the environment variables to use DynamoDB (see ~/lambda-shared.tf -> lambda_environment_variables)
         os.environ["db_provider"] = "dynamodb"
         os.environ["db_table_name"] = self.table_name
         os.environ["db_config_iac_item_key_id"] = self.db_config_iac_item_key_id
         os.environ["db_config_external_item_key_id"] = self.db_config_external_item_key_id
 
-    def seed_default_data(self) -> Any:
+    def seed_config_data(self, hosted_zone_id: str) -> Any:
         # Records to insert
 
         # Pretty much all-default record for Auto-scaling group, as defined in variables.tf
@@ -57,7 +57,7 @@ class DynamoDBDataSeeder:
                     "mode": "MULTIVALUE",
                     "empty_mode": "KEEP",
                     "value_source": "ip:v4:private",
-                    "dns_zone_id": "Z1234567890",
+                    "dns_zone_id": hosted_zone_id,
                     "record_name": "test-asg",
                     "record_ttl": 60,
                     "record_type": "A",

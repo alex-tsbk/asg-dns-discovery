@@ -2,11 +2,19 @@ from typing import Self
 
 from app.domain.handlers.handler_context import HandlerContext
 
-from .handler_interface import HandlerInterface, T_contra
+from ..domain.handlers.handler_interface import HandlerInterface, T_contra
 
 
-class HandlerBase(HandlerInterface[T_contra]):
-    """Base class for all handlers"""
+class StepBase(HandlerInterface[T_contra]):
+    """
+    Base generic class representing a step in the workflow pipeline.
+
+    Remarks:
+        - Models functionality on top of the HandlerInterface.
+        - Implements the Chain of Responsibility pattern to chain the handlers.
+        - Provides syntactic sugar to chain the handlers using the >> operator.
+
+    """
 
     def __init__(self):
         self._predecessor: Self | None = None
@@ -47,6 +55,10 @@ class HandlerBase(HandlerInterface[T_contra]):
 
     def __rshift__(self, other: Self) -> Self:
         """Overloads the >> operator to chain the handlers.
+            Kind of syntactic sugar so that pipeline can be defined in a more readable way, i.e:
+
+            `handler1 >> handler2 >> handler3`
+
 
         Args:
             other (HandlerInterface[T_contra]): Next handler in the pipeline.

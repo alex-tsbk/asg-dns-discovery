@@ -1,10 +1,10 @@
 from app.config.env_configuration_service import EnvironmentConfigurationService
 from app.config.sg_configuration_service import ScalingGroupConfigurationsService
-from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.domain.handlers.handler_context import HandlerContext
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
+from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.workflows.workflow_step_base import StepBase
 
 

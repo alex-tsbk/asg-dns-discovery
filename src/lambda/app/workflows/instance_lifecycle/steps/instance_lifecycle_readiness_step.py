@@ -2,14 +2,14 @@ from typing import ClassVar
 
 from app.components.readiness.instance_readiness_interface import InstanceReadinessInterface
 from app.components.readiness.models.readiness_result_model import ReadinessResultModel
-from app.contexts.instance_lifecycle_context import InstanceLifecycleContext
-from app.domain.handlers.handler_base import HandlerBase
 from app.domain.handlers.handler_context import HandlerContext
 from app.utils import instrumentation
 from app.utils.logging import get_logger
+from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
+from app.workflows.instance_lifecycle.instance_lifecycle_step import InstanceLifecycleStep
 
 
-class InstanceReadinessHandler(HandlerBase[InstanceLifecycleContext]):
+class InstanceReadinessHandler(InstanceLifecycleStep):
     """Handles determining instance readiness in the instance lifecycle"""
 
     # Internally tracks readiness checks that have passed,
@@ -49,7 +49,7 @@ class InstanceReadinessHandler(HandlerBase[InstanceLifecycleContext]):
         # Record readiness check into internal cache
         if readiness_result.ready:
             self.checks_passed.add(context_readiness_key)
-            self.logger.debug(f"Readiness check {context_readiness_key} passed")
+            self.logger.debug(f"Readiness check [{context_readiness_key}] passed")
 
         # Update context
         context.readiness_result = readiness_result
@@ -92,4 +92,4 @@ class InstanceReadinessHandler(HandlerBase[InstanceLifecycleContext]):
             str: Unique key representing the execution/instance/readiness configuration
         """
         readiness_check_id = context.readiness_config.uid if context.readiness_config else ""
-        return f"{context.context_id}/{context.instance_id}/{context.scaling_group_config.scaling_group_name}/{readiness_check_id}"
+        return f"ctx:{context.context_id}/i:{context.instance_id}/sg:{context.scaling_group_config.scaling_group_name}/rdn_chk_id:{readiness_check_id}"

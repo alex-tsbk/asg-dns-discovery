@@ -191,7 +191,7 @@ class DIContainer:
         """
         key = (interface, name)
         if key not in self._services:
-            raise ValueError(f"Service {interface.__name__} not registered.")
+            raise ValueError(f"Service {interface.__name__} with name '{name}' not registered.")
         if not issubclass(implementation, interface):
             raise ValueError(f"Implementation {implementation.__name__} must be a subclass of {interface.__name__}.")
         if not hasattr(implementation, "__init__"):
@@ -222,7 +222,7 @@ class DIContainer:
     def _build[T](self, interface: Type[T], name: str = "") -> T:
         key = (interface, name)
         if key not in self._services:
-            raise ValueError(f"Service {interface.__name__} not registered.")
+            raise ValueError(f"Service {interface.__name__} with name '{name}' not registered.")
         implementation, lifetime = self._services[key]
 
         if lifetime == _LTS_INSTANCE:

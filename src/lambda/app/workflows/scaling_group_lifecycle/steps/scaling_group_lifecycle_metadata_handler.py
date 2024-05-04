@@ -3,14 +3,14 @@ from typing import Optional
 from app.components.concurrency.task_scheduler_interface import TaskSchedulerInterface
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleTransition
-from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.domain.handlers.handler_context import HandlerContext
 from app.utils.di import Injectable, NamedInjectable
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
-from app.workflows.workflow_step_base import StepBase
+from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.workflows.workflow_interface import WorkflowInterface
+from app.workflows.workflow_step_base import StepBase
 
 
 class ScalingGroupLifecycleMetadataHandler(StepBase[ScalingGroupLifecycleContext]):

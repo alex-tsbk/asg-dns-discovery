@@ -3,10 +3,10 @@ from typing import Any
 
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleEventModel
 from app.components.lifecycle.models.lifecycle_event_model_factory import LifecycleEventModelFactory
-from app.contexts.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
+from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
 from app.workflows.workflow_interface import WorkflowInterface
 
 

@@ -4,7 +4,7 @@ locals {
   # Lambda function runtime version
   lambda_runtime = var.lambda_settings.python_runtime
   # Environment variables for the lambda function
-  lambda_envrionment_variables = {
+  lambda_environment_variables = {
     # Cloud Provider
     cloud_provider = "aws"
     # Lambda logging

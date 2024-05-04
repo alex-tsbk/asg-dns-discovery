@@ -27,7 +27,7 @@ resource "aws_lambda_function" "dns_discovery_lambda_lifecycle_handler" {
   }
 
   environment {
-    variables = local.lambda_envrionment_variables
+    variables = local.lambda_environment_variables
   }
 
   tags = local.tags

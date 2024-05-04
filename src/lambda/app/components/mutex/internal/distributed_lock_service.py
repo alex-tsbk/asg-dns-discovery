@@ -1,4 +1,4 @@
-import time
+import datetime
 
 from app.components.mutex.distributed_lock_interface import DistributedLockInterface
 from app.components.persistence.database_repository_interface import DatabaseRepositoryInterface
@@ -47,7 +47,11 @@ class DistributedLockService(DistributedLockInterface):
         resource_id = lock_key  # Explicit naming for context clarity
         self.logger.debug(f"Acquiring lock for resource: {resource_id}")
         try:
-            item = {"timestamp": int(time.time())}
+            utc_now = datetime.datetime.now(datetime.UTC)
+            item = {
+                "timestamp": int(utc_now.timestamp()),
+                "readable_timestamp": utc_now.strftime("%Y-%m-%d %H:%M:%S %Z"),
+            }
             response = self.repository.create(resource_id, item)
             self.logger.debug(f"acquire_lock response: {to_json(response)}")
             return bool(response)
