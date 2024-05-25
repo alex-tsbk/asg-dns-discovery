@@ -23,7 +23,6 @@ variables {
 
   reconciliation = {
     scaling_group_valid_states = ["InService"]
-    what_if                    = false
     max_concurrency            = 1
     schedule_enabled           = true
     schedule_interval_minutes  = 5

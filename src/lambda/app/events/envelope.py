@@ -6,7 +6,7 @@ from app.utils.dataclass import DataclassBase
 
 @dataclass
 class Envelope(DataclassBase):
-    """Entity representing the envelope of the message."""
+    """Entity representing the envelope of the message for external events."""
 
     # Message id
     message_id: str = field(init=False, default=uuid4().hex)

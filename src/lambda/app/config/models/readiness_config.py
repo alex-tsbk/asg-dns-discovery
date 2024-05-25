@@ -19,9 +19,12 @@ class ReadinessConfig(DataclassBase):
     tag_value: str = field(default="ready")
 
     @property
-    def uid(self):
+    def hash(self):
         """Unique identifier for the readiness configuration"""
         return f"{self.enabled}/{self.interval_seconds}/{self.timeout_seconds}/{self.tag_key}/{self.tag_value}"
+
+    def __str__(self) -> str:
+        return self.hash
 
     @override
     @classmethod

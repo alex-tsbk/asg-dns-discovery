@@ -8,14 +8,14 @@ from app.utils.di import Injectable, NamedInjectable
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
-from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
+from app.workflows.scaling_group_lifecycle.sgl_context import ScalingGroupLifecycleContext
+from app.workflows.scaling_group_lifecycle.sgl_step import ScalingGroupLifecycleStep
 from app.workflows.workflow_interface import WorkflowInterface
-from app.workflows.workflow_step_base import StepBase
 
 
-class ScalingGroupLifecycleMetadataHandler(StepBase[ScalingGroupLifecycleContext]):
+class ScalingGroupLifecycleHandleTransitionStep(ScalingGroupLifecycleStep):
     """
-    Handler responsible for dispatching instance lifecycle events based on the scaling group lifecycle event transition
+    Handles lifecycle event transitions for instances in a scaling group
     """
 
     def __init__(
@@ -34,7 +34,7 @@ class ScalingGroupLifecycleMetadataHandler(StepBase[ScalingGroupLifecycleContext
         self.instance_draining_workflow = instance_draining_workflow
 
     def handle(self, context: ScalingGroupLifecycleContext) -> HandlerContext:
-        """Handle instance readiness lifecycle
+        """Handles the scaling group lifecycle event
 
         Args:
             context (ScalingGroupLifecycleContext): Context in which the handler is executed
@@ -54,8 +54,8 @@ class ScalingGroupLifecycleMetadataHandler(StepBase[ScalingGroupLifecycleContext
             raise BusinessException(f"Unsupported lifecycle event transition: {event.transition}")
 
         # Schedule instance workflow on background thread, so they don't block the main thread
-        for instance_context in context.instances_contexts:
-            self.task_scheduler_service.place(workflow.handle, instance_context)
+        for instance_lifecycle_context in context.instances_contexts:
+            self.task_scheduler_service.place(workflow.handle, instance_lifecycle_context)
 
         self.logger.debug(f"Dispatched {event.transition} event for {len(context.instances_contexts)} instances")
 

@@ -126,5 +126,4 @@ if __name__ == "__main__":
     if args.event_family in [
         "asg-lifecycle",
     ]:
-
         debug_event_request_handler(event)

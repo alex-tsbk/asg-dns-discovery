@@ -1,3 +1,4 @@
+from app.config.models.dns_record_config import DnsRecordProvider
 from app.contexts.runtime_context import RUNTIME_CONTEXT
 from app.utils.di import DIContainer
 
@@ -14,4 +15,4 @@ def register_services(di_container: DIContainer):
     if RUNTIME_CONTEXT.is_aws:
         from .internal.aws.aws_dns_management_service import AwsDnsManagementService
 
-        di_container.register(DnsManagementInterface, AwsDnsManagementService, name="route53")
+        di_container.register(DnsManagementInterface, AwsDnsManagementService, name=DnsRecordProvider.ROUTE53.value)

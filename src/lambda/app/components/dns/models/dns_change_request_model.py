@@ -88,13 +88,15 @@ class DnsChangeRequestModel(DataclassBase):
 
     @abstractmethod
     def build_change(self) -> Self:
-        """Builds a change for the underlying DNS provider."""
-        pass
+        """Builds a change for the underlying DNS provider and
+        ensures further calls to 'build_change' are immutable.
+        """
+        raise NotImplementedError("Method 'build_change' must be implemented in a subclass.")
 
     @abstractmethod
     def get_change(self) -> Mapping[str, Any]:
         """Gets platform-specific representation of the change request."""
-        pass
+        raise NotImplementedError("Method 'get_change' must be implemented in a subclass.")
 
     @classmethod
     def from_dns_record_config(cls, dns_record_config: DnsRecordConfig) -> Self:

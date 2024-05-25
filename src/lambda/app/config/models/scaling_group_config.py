@@ -5,7 +5,7 @@ from typing import Any, Optional, Self, override
 from app.config.models.dns_record_config import DnsRecordConfig
 from app.config.models.health_check_config import HealthCheckConfig
 from app.config.models.readiness_config import ReadinessConfig
-from app.utils import enums
+from app.utils import enums, strings
 from app.utils.dataclass import DataclassBase
 
 
@@ -18,10 +18,6 @@ class ScalingGroupProceedMode(Enum):
     # When ASG has multiple DNS configurations, proceed with applying changes if current configuration
     # is considered 'ready' and 'healthy'.
     SELF_OPERATIONAL = "SELF_OPERATIONAL"
-    # When ASG has multiple DNS configurations, proceed with applying changes if at least 50% of configurations
-    # for the same ASG are considered 'ready' and 'healthy'. If there are 2 configurations, at least 1 configuration
-    # should be considered 'ready' and 'healthy' (50%).
-    HALF_OPERATIONAL = "HALF_OPERATIONAL"
 
 
 @dataclass
@@ -32,6 +28,8 @@ class ScalingGroupConfiguration(DataclassBase):
     scaling_group_name: str
     # DNS configuration
     dns_config: DnsRecordConfig
+    # When set to true, the changes are not applied, only the simulation is performed
+    what_if: bool = field(default=False)
     # Describes how to proceed with changes for the situations when Scaling Group
     # has multiple DNS configurations
     multiple_config_proceed_mode: ScalingGroupProceedMode = field(default=ScalingGroupProceedMode.ALL_OPERATIONAL)
@@ -76,10 +74,11 @@ class ScalingGroupConfiguration(DataclassBase):
     def from_dict(cls, data: dict[str, Any]) -> Self:
         params: dict[str, Any] = {
             "scaling_group_name": data.get("scaling_group_name"),
-            "dns_config": DnsRecordConfig.from_dict(data.get("dns_config", {})),
             "multiple_config_proceed_mode": enums.to_enum(
                 data.get("multiple_config_proceed_mode"), default=ScalingGroupProceedMode.ALL_OPERATIONAL
             ),
+            "what_if": strings.alike(data.get("what_if", False), "true"),
+            "dns_config": DnsRecordConfig.from_dict(data.get("dns_config", {})),
         }
         # Only create health check config if it's present in the config
         health_check_config = data.get("health_check", {})

@@ -32,7 +32,7 @@ class ConcurrentTaskScheduler(TaskSchedulerInterface):
     # Tracks workers in use at class level to prevent abuse of the thread pool
     # across all concurrent task scheduler instances
     workers_in_use: int = 0
-    worker_in_use_lock = threading.Lock()
+    workers_in_use_lock = threading.Lock()
 
     def __init__(self):
         """Initializes the task scheduler with a thread pool executor."""
@@ -51,7 +51,7 @@ class ConcurrentTaskScheduler(TaskSchedulerInterface):
         while True:
             # Double-check locking to ensure the worker limit is not exceeded
             if self.workers_in_use < self.max_workers:
-                with self.worker_in_use_lock:
+                with self.workers_in_use_lock:
                     if self.workers_in_use < self.max_workers:
                         self.workers_in_use += 1
                         break

@@ -1,15 +1,18 @@
 from app.config.env_configuration_service import EnvironmentConfigurationService
+from app.config.models.scaling_group_config import ScalingGroupConfiguration
 from app.config.sg_configuration_service import ScalingGroupConfigurationsService
 from app.domain.handlers.handler_context import HandlerContext
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
-from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
-from app.workflows.workflow_step_base import StepBase
+from app.workflows.scaling_group_lifecycle.sgl_context import ScalingGroupLifecycleContext
+from app.workflows.scaling_group_lifecycle.sgl_step import ScalingGroupLifecycleStep
 
 
-class ScalingGroupLifecycleHandler(StepBase[ScalingGroupLifecycleContext]):
-    """Service responsible for handling lifecycle event"""
+class ScalingGroupLifecycleInitStep(ScalingGroupLifecycleStep):
+    """
+    Handler responsible for initializing the scaling group lifecycle event
+    """
 
     def __init__(
         self,
@@ -22,7 +25,7 @@ class ScalingGroupLifecycleHandler(StepBase[ScalingGroupLifecycleContext]):
         self.sg_configuration_service = sg_configuration_service
 
     def handle(self, context: ScalingGroupLifecycleContext) -> HandlerContext:
-        """Handle instance readiness lifecycle
+        """Handles the scaling group lifecycle event
 
         Args:
             context (ScalingGroupLifecycleContext): Context in which the handler is executed
@@ -37,12 +40,20 @@ class ScalingGroupLifecycleHandler(StepBase[ScalingGroupLifecycleContext]):
             raise BusinessException("Unable to load Scaling Group DNS configurations.")
 
         # Resolve all scaling group configurations for the current scaling group
-        scaling_group_configs = all_scaling_groups_configs.for_scaling_group(event.scaling_group_name)
+        scaling_group_configs: list[ScalingGroupConfiguration] = all_scaling_groups_configs.for_scaling_group(
+            event.scaling_group_name
+        )
         if not scaling_group_configs:
             self.logger.warning(f"Scaling Group DNS configurations not found for ASG: {event.scaling_group_name}")
             raise BusinessException(f"Scaling Group DNS configurations not found for ASG: {event.scaling_group_name}")
 
-        # For each scaling group dns configuration, gather information and perform appropriate actions
+        # Augment context with scaling group configurations
+        context.scaling_group_configs = scaling_group_configs
+
+        # For each scaling group dns configuration, gather information and perform appropriate actions.
+        # The reason we're spawning multiple instances of InstanceLifecycleContext is because instance might be
+        # tracked by multiple scaling group configurations.
+
         for scaling_group_config in scaling_group_configs:
 
             readiness_config = scaling_group_config.readiness_config

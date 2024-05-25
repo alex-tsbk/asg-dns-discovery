@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Self, override
+from typing import TYPE_CHECKING, Optional, Self, override
 
 if TYPE_CHECKING:
     from mypy_boto3_route53.type_defs import ChangeBatchTypeDef, ChangeTypeDef
@@ -19,7 +19,7 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
     """Model for AWS Route53 change request."""
 
     # Private attributes
-    _change: "ChangeTypeDef" = field(init=False, repr=False)
+    _change: Optional["ChangeTypeDef"] = field(init=False, repr=False, default=None)  # type: ignore
 
     def __post_init__(self):
         """Need to call the parent's post-init method explicitly."""
@@ -48,6 +48,9 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
                     }]
                 }
         """
+        if self._change is None:
+            raise BusinessException("Change request is not built. Call 'build_change' method first.")
+
         return {
             "Comment": f"SG-DNS-DISCOVERY-{datetime.now(UTC).timestamp()}",
             "Changes": [self._change],
@@ -56,10 +59,17 @@ class AwsDnsChangeRequestModel(DnsChangeRequestModel):
     @override
     def build_change(self) -> Self:
         """Generate a change request for a record based on record type.
+        After this method is called, the change is built and stored in the object,
+        making subsequent calls to this method immutable.
 
         Returns:
             AwsDnsChangeRequestModel: The change request.
         """
+        # If change is already built, return self, don't rebuild it.
+        # We're using this in the unit of work, so we want to ensure that the change is built only once.
+        if self._change is not None:
+            return self
+
         if not self.record_values:
             raise BusinessException(f"At least one record value is required for '{self.record_name}' DNS record.")
 

@@ -16,14 +16,14 @@ class DnsRecordMappingMode(Enum):
     #     (or single A record with multiple IP addresses):
     #     ;; subdomain.example.com A 12.82.13.83, 12.82.13.84, 12.82.14.80
     MULTIVALUE = "MULTIVALUE"
-    # SINGLE_LATEST:
+    # SINGLE:
     #   Single value for the DNS name.
     # Value is resolved to the most-recently-launched Instance in Scaling Group
     # that is considered 'ready' and 'healthy'. Great for blue/green deployments.
     # Example:
     #   * domain.com resolves to a single IP address, thus having a single A record with single value:
     #     ;; subdomain.example.com A 12.82.13.83
-    SINGLE_LATEST = "SINGLE_LATEST"
+    SINGLE = "SINGLE"
 
 
 class DnsRecordProvider(Enum):
@@ -69,7 +69,8 @@ class DnsRecordConfig(DataclassBase):
     srv_weight: int = field(default=0)
     srv_port: int = field(default=0)
 
-    def uid(self) -> str:
+    @property
+    def hash(self) -> str:
         """Generate a unique identifier for the DNS record configuration"""
         return f"{self.provider.value}-{self.dns_zone_id}-{self.record_name}-{self.record_type}"
 
@@ -89,9 +90,8 @@ class DnsRecordConfig(DataclassBase):
         ]
 
         if self.mode == DnsRecordMappingMode.MULTIVALUE and self.record_type not in RECORDS_SUPPORTING_MULTIVALUE:
-            raise ValueError(
-                f"Invalid record type: {self.record_type} - for mode {self.mode.value}: only {RECORDS_SUPPORTING_MULTIVALUE} are supported"
-            )
+            # Fix mode to single if record type does not support multivalue
+            self.mode = DnsRecordMappingMode.SINGLE
 
         if self.empty_mode == DnsRecordEmptyValueMode.FIXED and not self.empty_mode_value:
             raise ValueError(

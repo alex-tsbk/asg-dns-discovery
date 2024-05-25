@@ -6,7 +6,7 @@ from app.components.lifecycle.models.lifecycle_event_model_factory import Lifecy
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
 from app.utils.serialization import to_json
-from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
+from app.workflows.scaling_group_lifecycle.sgl_context import ScalingGroupLifecycleContext
 from app.workflows.workflow_interface import WorkflowInterface
 
 
@@ -18,6 +18,7 @@ class AwsScalingGroupLifecycleEventHandler:
         lifecycle_event_model_factory: LifecycleEventModelFactory,
         scaling_group_lifecycle_workflow: WorkflowInterface[ScalingGroupLifecycleContext],
     ):
+        self.logger = get_logger()
         self.lifecycle_event_model_factory = lifecycle_event_model_factory
         self.scaling_group_lifecycle_workflow = scaling_group_lifecycle_workflow
 
@@ -125,31 +126,31 @@ class AwsScalingGroupLifecycleEventHandler:
 
             context [Any]: Lambda context object
         """
-        logger = get_logger()
+
         sns_message: dict[str, Any] = {}
-        logger.debug(f"Received event: {to_json(event)}")
+        self.logger.debug(f"Received event: {to_json(event)}")
         # Extract Message from Records -> SNS
         if "Records" in event and len(event["Records"]) > 0 and "Sns" in event["Records"][0]:
             sns_message = json.loads(event["Records"][0]["Sns"]["Message"])
-            logger.debug(f"Extracted ['Records'][0]['Sns']['Message']: {to_json(sns_message)}")
+            self.logger.debug(f"Extracted ['Records'][0]['Sns']['Message']: {to_json(sns_message)}")
 
-        # If no SNS message found, return 500
+        # No SNS message found in the event object
         if not sns_message:
-            logger.warning("No SNS event found in the event object")
-            return {"statusCode": 500, "body": "No SNS event found in the event object"}
+            self.logger.warning("No SNS event found in the event object")
+            return {"statusCode": 404, "body": "No SNS event found in the event object"}
 
-        # If this is a test notification, return 200 OK
+        # If this is a test notification, return 405 and ignore
         if not sns_message.get("Origin", "") and not sns_message.get("Destination", ""):
-            logger.info("Received notification that is not a lifecycle event. Ignoring...")
+            self.logger.info("Received notification that is not a lifecycle event. Ignoring...")
             return {
-                "statusCode": 200,
+                "statusCode": 405,
                 "body": "Received notification that is not a lifecycle event. 'Origin' and 'Destination' not found on the message object.",
             }
 
-        # We received an SNS message but it's not a lifecycle event
+        # We received an SNS message but it's not a lifecycle event, and not a test notification
         if not sns_message.get("LifecycleTransition", ""):
-            logger.warning("No lifecycle transition found in the SNS message. Ignoring...")
-            return {"statusCode": 400, "body": "No lifecycle transition found in the SNS message object. Ignoring."}
+            self.logger.warning("No lifecycle transition found in the SNS message. Ignoring...")
+            return {"statusCode": 406, "body": "No lifecycle transition found in the SNS message object. Ignoring."}
 
         # Build lifecycle event model
         try:
@@ -160,20 +161,16 @@ class AwsScalingGroupLifecycleEventHandler:
         scaling_group_lifecycle_context = ScalingGroupLifecycleContext(event=event_model)
 
         # Looks like we have a lifecycle event, let's handle it
-        logger.debug("Initializing lifecycle service handling...")
+        self.logger.debug("Initializing lifecycle service handling...")
         try:
-            logger.info(
+            self.logger.info(
                 f"Handling lifecycle event for AutoScalingGroup: {sns_message['AutoScalingGroupName']} and EC2 instance: {sns_message['EC2InstanceId']}"
             )
             result = self.scaling_group_lifecycle_workflow.handle(scaling_group_lifecycle_context)
+            self.logger.info("Lifecycle event handled successfully")
         except Exception as e:
             # TODO: Submit failure data point to CloudWatch
-            logger.error(f"Error handling lifecycle event: {str(e)}")
-            return {"statusCode": 500, "body": "Error handling lifecycle event"}
-        else:
-            if result:
-                logger.info("Lifecycle event handled successfully")
-            else:
-                logger.warning("Lifecycle event not handled")
+            self.logger.error(f"Error handling lifecycle event: {str(e)}")
+            return {"statusCode": 500, "body": "Error handling lifecycle event", "error": str(e)}
 
         return {"statusCode": 200, "handled": result, "body": "Lifecycle action completed"}

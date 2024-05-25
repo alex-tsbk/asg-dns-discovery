@@ -46,7 +46,6 @@ class EnvironmentConfigurationService:
     def reconciliation_config(self) -> ReconciliationConfig:
         """Returns reconciliation settings. These are used to determine if an instance is ready to serve traffic."""
 
-        what_if = environment.try_get_value("reconciliation_what_if", False)
         max_concurrency = environment.try_get_value("reconciliation_max_concurrency", 1)
         scaling_group_valid_states = environment.try_get_value("reconciliation_scaling_group_valid_states", "").split(
             ","
@@ -57,7 +56,6 @@ class EnvironmentConfigurationService:
         )
         message_broker_url = environment.try_get_value("reconciliation_message_broker_url", "")
         return ReconciliationConfig(
-            what_if,
             max_concurrency,
             scaling_group_valid_states,
             message_broker,

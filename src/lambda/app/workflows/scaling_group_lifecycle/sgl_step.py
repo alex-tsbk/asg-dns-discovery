@@ -1,4 +1,4 @@
-from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
+from app.workflows.scaling_group_lifecycle.sgl_context import ScalingGroupLifecycleContext
 from app.workflows.workflow_step_base import StepBase
 
 

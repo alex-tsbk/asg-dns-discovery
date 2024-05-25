@@ -22,4 +22,6 @@ locals {
     },
     var.tags,
   )
+  # Determine whether any 'private' ip's are being assessed
+  resolves_private_ips = length([for record in var.records : record.dns_config.value_source if startswith(record.dns_config.value_source, "ip") && endswith(record.dns_config.value_source, "private")])
 }

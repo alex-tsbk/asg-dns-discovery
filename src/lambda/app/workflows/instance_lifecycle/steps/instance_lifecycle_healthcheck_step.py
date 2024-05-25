@@ -12,7 +12,7 @@ from app.workflows.instance_lifecycle.instance_lifecycle_context import Instance
 from app.workflows.instance_lifecycle.instance_lifecycle_step import InstanceLifecycleStep
 
 
-class InstanceHealthCheckHandler(InstanceLifecycleStep):
+class InstanceHealthCheckStep(InstanceLifecycleStep):
     """Handles determining instance health check in the instance lifecycle"""
 
     # Internally tracks checks that have passed,
@@ -109,5 +109,5 @@ class InstanceHealthCheckHandler(InstanceLifecycleStep):
         Returns:
             str: Unique key representing the execution/instance/health check configuration
         """
-        health_check_id = context.health_check_config.uid if context.health_check_config else ""
+        health_check_id = context.health_check_config.hash if context.health_check_config else ""
         return f"ctx:{context.context_id}/i:{context.instance_id}/sg:{context.scaling_group_config.scaling_group_name}/hth_hck_id:{health_check_id}"

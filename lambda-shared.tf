@@ -22,7 +22,6 @@ locals {
     db_config_iac_item_key_id      = local.dynamo_db_iac_config_item_key_id
     db_config_external_item_key_id = local.dynamo_db_external_config_item_key_id
     # Reconciliation
-    reconciliation_what_if                    = var.reconciliation.what_if
     reconciliation_max_concurrency            = var.reconciliation.max_concurrency
     reconciliation_scaling_group_valid_states = join(",", var.reconciliation.scaling_group_valid_states)
     reconciliation_message_broker             = var.reconciliation.message_broker

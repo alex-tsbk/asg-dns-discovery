@@ -7,7 +7,7 @@ from app.contexts.runtime_context import RUNTIME_CONTEXT
 from app.utils.di import DIContainer, DILifetimeScope
 from app.utils.logging import get_logger
 from app.workflows.instance_lifecycle.instance_lifecycle_step import InstanceLifecycleStep
-from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_context import ScalingGroupLifecycleContext
+from app.workflows.scaling_group_lifecycle.sgl_context import ScalingGroupLifecycleContext
 
 logger = get_logger()
 
@@ -75,24 +75,34 @@ def __register_handlers(di_container: DIContainer) -> None:
     Args:
         di_container (DIContainer): Dependency injection container
     """
-    from app.workflows.instance_lifecycle.steps.instance_lifecycle_healthcheck_step import InstanceHealthCheckHandler
+    from app.workflows.instance_lifecycle.steps.instance_lifecycle_healthcheck_step import InstanceHealthCheckStep
     from app.workflows.instance_lifecycle.steps.instance_lifecycle_load_metadata_step import InstanceMetadataLoaderStep
-    from app.workflows.instance_lifecycle.steps.instance_lifecycle_readiness_step import InstanceReadinessHandler
-    from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_step import ScalingGroupLifecycleStep
-    from app.workflows.scaling_group_lifecycle.steps.scaling_group_lifecycle_init_handler import (
-        ScalingGroupLifecycleInitHandler,
+    from app.workflows.instance_lifecycle.steps.instance_lifecycle_readiness_step import (
+        CachedInstanceReadinessStep,
+        InstanceReadinessStep,
     )
-    from app.workflows.scaling_group_lifecycle.steps.scaling_group_lifecycle_metadata_handler import (
-        ScalingGroupLifecycleMetadataHandler,
+    from app.workflows.scaling_group_lifecycle.sgl_step import ScalingGroupLifecycleStep
+    from app.workflows.scaling_group_lifecycle.steps.sgl_apply_dns_changes_step import (
+        ScalingGroupLifecycleApplyDnsChangesStep,
+    )
+    from app.workflows.scaling_group_lifecycle.steps.sgl_handle_transition_step import (
+        ScalingGroupLifecycleHandleTransitionStep,
+    )
+    from app.workflows.scaling_group_lifecycle.steps.sgl_init_step import ScalingGroupLifecycleInitStep
+    from app.workflows.scaling_group_lifecycle.steps.sgl_plan_dns_changes_step import (
+        ScalingGroupLifecyclePlanDnsChangesStep,
     )
 
     # Scaling group lifecycle
-    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleInitHandler, name="init", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
-    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleMetadataHandler, name="metadata", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleInitStep, name="init", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleHandleTransitionStep, name="transition-handler", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecyclePlanDnsChangesStep, name="dns-planner", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleApplyDnsChangesStep, name="dns-applier", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
     # Instance lifecycle
     di_container.register(InstanceLifecycleStep, InstanceMetadataLoaderStep, name="metadata-loader", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
-    di_container.register(InstanceLifecycleStep, InstanceReadinessHandler, name="readiness-check", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
-    di_container.register(InstanceLifecycleStep, InstanceHealthCheckHandler, name="health-check", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(InstanceLifecycleStep, InstanceReadinessStep, name="readiness-check", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.decorate(InstanceLifecycleStep, CachedInstanceReadinessStep, name="readiness-check")
+    di_container.register(InstanceLifecycleStep, InstanceHealthCheckStep, name="health-check", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
 
 
 def __register_workflows(di_container: DIContainer) -> None:
@@ -104,7 +114,7 @@ def __register_workflows(di_container: DIContainer) -> None:
     from app.workflows.instance_lifecycle.instance_launching_workflow import InstanceLaunchingLifecycleWorkflow
     from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
     from app.workflows.instance_lifecycle.instance_terminating_workflow import InstanceTerminatingLifecycleWorkflow
-    from app.workflows.scaling_group_lifecycle.scaling_group_lifecycle_workflow import ScalingGroupLifecycleWorkflow
+    from app.workflows.scaling_group_lifecycle.sgl_workflow import ScalingGroupLifecycleWorkflow
     from app.workflows.workflow_interface import WorkflowInterface
 
     # Workflow for handling Scaling Group lifecycle events

@@ -3,12 +3,11 @@ from typing import Iterable
 
 import boto3
 from app.components.concurrency.internal.concurrent_task_scheduler import ConcurrentTaskScheduler
+from debug.aws.seeders import constants
 from debug.aws.seeders.networking_seeder import NetworkingSeederResponse
 from debug.utils import with_delay
 from mypy_boto3_autoscaling import AutoScalingClient
 from mypy_boto3_ec2 import EC2Client
-
-from ...aws.seeders import constants
 
 
 @dataclass
@@ -109,11 +108,12 @@ class Ec2DataSeeder:
                     "ResourceType": "instance",
                     "Tags": [
                         {"Key": "Name", "Value": "test-instance"},
+                        {"Key": "dns_cname", "Value": "www.python.org"},
                     ],
                 },
             ],
         )
-        instance_id = create_result["Instances"][0]["InstanceId"]
+        instance_id: str = create_result["Instances"][0]["InstanceId"]
         shared_state.scaling_groups[asg_name].append(instance_id)
 
         return instance_id

@@ -39,7 +39,7 @@ class HealthCheckConfig(DataclassBase):
     timeout_seconds: int = field(default=5)
 
     @property
-    def uid(self):
+    def hash(self):
         """Unique identifier for the health check result"""
         return f"{self.enabled}/{self.endpoint_source}/{self.path}/{self.port}/{self.protocol}/{self.timeout_seconds}"
 
@@ -55,6 +55,9 @@ class HealthCheckConfig(DataclassBase):
 
         if self.enabled and self.protocol in [HealthCheckProtocol.HTTP, HealthCheckProtocol.HTTPS] and not self.path:
             raise ValueError("Health check path is required when HTTP(S) health check is enabled")
+
+    def __str__(self) -> str:
+        return self.hash
 
     @override
     @classmethod
