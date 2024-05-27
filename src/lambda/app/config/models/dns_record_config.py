@@ -55,7 +55,7 @@ class DnsRecordConfig(DataclassBase):
     mode: DnsRecordMappingMode = field(default=DnsRecordMappingMode.MULTIVALUE)
     # Specifies action to take when no value is available to update record with
     empty_mode: DnsRecordEmptyValueMode = field(default=DnsRecordEmptyValueMode.KEEP)
-    empty_mode_value: str = field(default="")
+    empty_mode_fixed_value: str = field(default="")
     # Specifies the source of the value to update the record with
     value_source: str = field(default="ip:private")
     # DNS zone ID (e.g. Z1234567890ABCDEF for AWS, etc.)
@@ -73,6 +73,21 @@ class DnsRecordConfig(DataclassBase):
     def hash(self) -> str:
         """Generate a unique identifier for the DNS record configuration"""
         return f"{self.provider.value}-{self.dns_zone_id}-{self.record_name}-{self.record_type}"
+
+    @property
+    def garbage_collection_id(self) -> str:
+        """Returns ID that's used for tracking values requiring garbage collection.
+
+        Garbage collection is the process of removing leftover records from Repository (DynamoDB in AWS)
+        which were used to track outdated DNS record value(s) if DNS config has `empty_mode` set to `KEEP`.
+
+        Example:
+            When SG scales to 0 instances, the DNS record keeps it's last value in place in such configuration.
+            For this - entry is created in the Repository to remember to remove this value on next scale-out event.
+            When SG scales out to 1+ instance(s), the DNS record is updated only with the new value(s)
+            resolved from Instance(s), instead of appending to it. The record from the Repository needs to be removed.
+        """
+        return f"garbage_collection_{self.hash}"
 
     def __post_init__(self):
         """Validate the DNS record configuration"""
@@ -93,9 +108,9 @@ class DnsRecordConfig(DataclassBase):
             # Fix mode to single if record type does not support multivalue
             self.mode = DnsRecordMappingMode.SINGLE
 
-        if self.empty_mode == DnsRecordEmptyValueMode.FIXED and not self.empty_mode_value:
+        if self.empty_mode == DnsRecordEmptyValueMode.FIXED and not self.empty_mode_fixed_value:
             raise ValueError(
-                f"Invalid empty mode value: {self.empty_mode_value} for mode {self.empty_mode.value}. Value is required."
+                f"Invalid empty mode value: {self.empty_mode_fixed_value} for mode {self.empty_mode.value}. Value is required."
             )
 
     @override
@@ -110,15 +125,15 @@ class DnsRecordConfig(DataclassBase):
         except Exception as e:
             raise ValueError(f"Invalid empty mode: {empty_mode_raw}") from e
 
-        empty_mode_value = ""
+        empty_mode_fixed_value = ""
         if empty_mode == DnsRecordEmptyValueMode.FIXED:
-            empty_mode_value = empty_mode_arr[1]
+            empty_mode_fixed_value = empty_mode_arr[1]
 
         return cls(
             provider=enums.to_enum(data.get("provider"), default=DnsRecordProvider.ROUTE53),
             mode=enums.to_enum(data.get("mode"), default=DnsRecordMappingMode.MULTIVALUE),
             empty_mode=empty_mode,
-            empty_mode_value=empty_mode_value,
+            empty_mode_fixed_value=empty_mode_fixed_value,
             value_source=str(data.get("value_source", "ip:private")).lower(),
             dns_zone_id=data.get("dns_zone_id", ""),
             record_name=data.get("record_name", ""),

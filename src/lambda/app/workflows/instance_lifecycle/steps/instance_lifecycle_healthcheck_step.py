@@ -75,10 +75,13 @@ class InstanceHealthCheckStep(InstanceLifecycleStep):
             HealthCheckResultModel: Model containing information about health check result
         """
         scaling_group_name = context.scaling_group_config.scaling_group_name
+        dns_config_hash = context.scaling_group_config.dns_config.hash
 
         # If no health check present, or health check is disabled, consider instance healthy
         if context.health_check_config is None or not context.health_check_config.enabled:
-            self.logger.debug(f"Health check disabled for Scaling Group: {scaling_group_name}")
+            self.logger.debug(
+                f"Health check disabled for Scaling Group: {scaling_group_name} tracking DNS configuration '{dns_config_hash}'"
+            )
             # Build result model
             return HealthCheckResultModel(
                 healthy=True, instance_id=context.instance_id, scaling_group_name=scaling_group_name

@@ -9,9 +9,9 @@ from app.workflows.scaling_group_lifecycle.sgl_context import ScalingGroupLifecy
 from app.workflows.scaling_group_lifecycle.sgl_step import ScalingGroupLifecycleStep
 
 
-class ScalingGroupLifecycleInitStep(ScalingGroupLifecycleStep):
+class ScalingGroupLifecycleLoadInstanceConfigsStep(ScalingGroupLifecycleStep):
     """
-    Handler responsible for initializing the scaling group lifecycle event
+    Handler responsible for loading instance dns/readiness/health check configurations.
     """
 
     def __init__(

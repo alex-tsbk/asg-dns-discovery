@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from app.components.discovery.instance_discovery_interface import InstanceDiscoveryInterface
@@ -145,6 +146,7 @@ class AwsDnsManagementService(DnsManagementInterface):
         if dns_config.mode == DnsRecordMappingMode.MULTIVALUE:
             desired_dns_record_values = current_dns_record_values.copy()
             desired_dns_record_values.extend(additional_dns_record_values)
+            desired_dns_record_values = self._remove_garbage_values(dns_config, desired_dns_record_values)
 
         if not desired_dns_record_values:
             return IGNORED_DNS_CHANGE_REQUEST
@@ -210,6 +212,9 @@ class AwsDnsManagementService(DnsManagementInterface):
         current_dns_record_values: list[str] = self._extract_values_from_route53_record(record)
         desired_dns_record_values: list[str] = self._extract_dns_record_values(dns_change_command)
 
+        # Remove any garbage values from the desired values, if present
+        desired_dns_record_values = self._remove_garbage_values(dns_config, desired_dns_record_values)
+
         # If current values are the same as desired values, ignore the change
         if set(current_dns_record_values) == set(desired_dns_record_values):
             return IGNORED_DNS_CHANGE_REQUEST
@@ -242,23 +247,27 @@ class AwsDnsManagementService(DnsManagementInterface):
         # Basically, do nothing if no values are left
         if dns_config.empty_mode == DnsRecordEmptyValueMode.KEEP:
             # Obtain UID
-            dns_config_hash_key = dns_config.hash
+            dns_config_garbage_collection_id = dns_config.garbage_collection_id
             # Pencil down the fact that the scaling group is empty, so value is removed from the record
             # on the next reconciliation cycle / when new instance is launched
-            dns_garbage_values = {"dns_garbage_values": current_dns_record_values}
-            create_response = self.repository.create(dns_config_hash_key, dns_garbage_values)
+            current_date_time = datetime.now(UTC).isoformat()
+            dns_garbage_values = {"dns_garbage_values": current_dns_record_values, "created_on": current_date_time}
+            create_response = self.repository.create(dns_config_garbage_collection_id, dns_garbage_values)
             # If the record already exists, check if the values match the current values
-            if not create_response and (recorded_dns_config := self.repository.get(dns_config_hash_key)):
+            if not create_response and (recorded_dns_config := self.repository.get(dns_config_garbage_collection_id)):
                 # Get the recorded DNS garbage values in repository
-                recorded_dns_garbage_values = recorded_dns_config.get("dns_garbage_values", [])
+                recorded_dns_garbage_values: list[str] = recorded_dns_config.get("dns_garbage_values", [])
                 # If the recorded values do not match the current values, override the change
-                if (recorded_values := set(sorted(recorded_dns_garbage_values))) != (
-                    current_values := set(sorted(current_dns_record_values))
+                if (recorded_values := tuple(sorted(recorded_dns_garbage_values))) != (
+                    current_values := tuple(sorted(current_dns_record_values))
                 ):
                     self.logger.debug(
                         f"Recorded DNS record values do not match the current values: {recorded_values} != {current_values}. Overriding the change."
                     )
-                    self.repository.put(dns_config_hash_key, {"dns_garbage_values": dns_garbage_values})
+                    self.repository.put(
+                        dns_config_garbage_collection_id,
+                        {"dns_garbage_values": dns_garbage_values, "updated_on": current_date_time},
+                    )
 
             return IGNORED_DNS_CHANGE_REQUEST
 
@@ -270,9 +279,45 @@ class AwsDnsManagementService(DnsManagementInterface):
         # Use a fixed value if no values are left
         if dns_config.empty_mode == DnsRecordEmptyValueMode.FIXED:
             model.action = DnsChangeRequestAction.UPDATE
-            model.record_values = [dns_config.empty_mode_value]
+            model.record_values = [dns_config.empty_mode_fixed_value]
 
         return model
+
+    def _remove_garbage_values(self, dns_config: DnsRecordConfig, desired_dns_record_values: list[str]) -> list[str]:
+        """Remove garbage values from the desired DNS record values, if any stored in the repository.
+
+        Args:
+            dns_config (DnsRecordConfig): DNS record configuration.
+            desired_dns_record_values (list[str]): List of desired DNS record values.
+
+        Returns:
+            list[str]: The desired DNS record values with garbage values removed.
+        """
+        # Get dns config hash key and check if there are any garbage values that needs to be cleaned up
+        dns_config_garbage_collection_id = dns_config.garbage_collection_id
+        refined_dns_record_values = desired_dns_record_values
+        if recorded_dns_config := self.repository.get(dns_config_garbage_collection_id):
+            # Get the recorded DNS garbage values in repository
+            recorded_dns_garbage_values: list[str] = recorded_dns_config.get("dns_garbage_values", [])
+            # If there are any garbage values, remove them from the desired values
+            if recorded_dns_garbage_values:
+                self.logger.info(
+                    f"Removing garbage values from the desired DNS record values: {recorded_dns_garbage_values}"
+                )
+                refined_dns_record_values = [
+                    value for value in desired_dns_record_values if value not in recorded_dns_garbage_values
+                ]
+                # Now that the garbage values are removed, mark the garbage values as ready to be cleaned up.
+                # The actual cleanup will be done after DNS changes are applied to the records.
+                self.repository.put(
+                    dns_config_garbage_collection_id,
+                    {
+                        "dns_garbage_values": recorded_dns_garbage_values,
+                        "updated_on": datetime.now(UTC).isoformat(),
+                        "ready_for_cleanup": True,
+                    },
+                )
+        return refined_dns_record_values
 
     @staticmethod
     def _extract_values_from_route53_record(record: "ResourceRecordSetTypeDef | None") -> list[str]:

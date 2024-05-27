@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Iterable
+from typing import Iterable, Sequence
 
 import boto3
 from app.components.concurrency.internal.concurrent_task_scheduler import ConcurrentTaskScheduler
@@ -11,9 +11,29 @@ from mypy_boto3_ec2 import EC2Client
 
 
 @dataclass
+class Ec2InfoModel:
+    """Model representing EC2 instance information."""
+
+    instance_id: str
+    instance_ipv4_private: str = field(default="")
+
+
+@dataclass
+class AsgInfoModel:
+    """Model representing ASG information."""
+
+    asg_name: str
+    instances: list[Ec2InfoModel] = field(default_factory=list)
+
+    @property
+    def instance_ids(self) -> Sequence[str]:
+        return [instance.instance_id for instance in self.instances]
+
+
+@dataclass
 class Ec2DataSeederState:
-    # Dictionary where key is scaling group name and value is list of instance ids
-    scaling_groups: dict[str, list[str]] = field(default_factory=dict)
+    # Dictionary where key is scaling group name and value is AsgInfoModel
+    scaling_groups: dict[str, AsgInfoModel] = field(default_factory=dict)
 
 
 class Ec2DataSeeder:
@@ -49,14 +69,16 @@ class Ec2DataSeeder:
         self.__create_instance_in_auto_scaling_group(constants.ASG_SECONDARY, networking_info, seeded_data)
 
         # Schedule updating ec2 instances tags in 10 seconds in the future, so code can progress to handling 'readiness'
-        self.task_scheduler.place(self.__mark_instance_ready, seeded_data.scaling_groups[constants.ASG_PRIMARY])
+        self.task_scheduler.place(
+            self.__mark_instance_ready, seeded_data.scaling_groups[constants.ASG_PRIMARY].instance_ids
+        )
 
         # Attach instances to auto-scaling groups
-        for asg, instances in seeded_data.scaling_groups.items():
+        for asg_info in seeded_data.scaling_groups.values():
             # Attach instances to auto-scaling group
             self.asg_client.attach_instances(
-                AutoScalingGroupName=asg,
-                InstanceIds=instances,
+                AutoScalingGroupName=asg_info.asg_name,
+                InstanceIds=asg_info.instance_ids,
             )
 
         self.task_scheduler
@@ -84,7 +106,7 @@ class Ec2DataSeeder:
             VPCZoneIdentifier=networking_info.subnet_id,
         )
 
-        shared_state.scaling_groups[asg_name] = []
+        shared_state.scaling_groups[asg_name] = AsgInfoModel(asg_name=asg_name)
 
     def __create_instance_in_auto_scaling_group(
         self, asg_name: str, networking_info: NetworkingSeederResponse, shared_state: Ec2DataSeederState
@@ -114,7 +136,13 @@ class Ec2DataSeeder:
             ],
         )
         instance_id: str = create_result["Instances"][0]["InstanceId"]
-        shared_state.scaling_groups[asg_name].append(instance_id)
+        instace_ipv4 = create_result["Instances"][0]["PrivateIpAddress"]
+        shared_state.scaling_groups[asg_name].instances.append(
+            Ec2InfoModel(
+                instance_id=instance_id,
+                instance_ipv4_private=instace_ipv4,
+            )
+        )
 
         return instance_id
 

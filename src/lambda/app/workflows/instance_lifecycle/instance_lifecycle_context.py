@@ -82,7 +82,8 @@ class InstanceLifecycleContext(HandlerContext):
         return deduplication_key
 
     def __post_init__(self):
-        return super().__post_init__()
+        """Explicitly call the parent class __post_init__ method."""
+        super().__post_init__()
 
     def __str__(self) -> str:
         return f"InstanceLifecycleContext(instance_id={self.instance_id}, scaling_group={self.scaling_group_config.scaling_group_name}, readiness={self.readiness_config}, health_check={self.health_check_config})"

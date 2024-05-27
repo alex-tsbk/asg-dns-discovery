@@ -26,7 +26,11 @@ class AwaitableInstanceReadinessService(InstanceReadinessInterface):
         """
         ready = self.underlying_service.is_ready(instance_id, readiness_config)
         if ready:
-            return ReadinessResultModel(ready=True, instance_id=instance_id)
+            return ReadinessResultModel(
+                ready=True,
+                instance_id=instance_id,
+                readiness_config_hash=readiness_config.hash,
+            )
 
         sleeping_for = 0
         tag_match_timeout = readiness_config.timeout_seconds
@@ -40,7 +44,15 @@ class AwaitableInstanceReadinessService(InstanceReadinessInterface):
             sleep(tag_match_interval)
             ready = self.underlying_service.is_ready(instance_id, readiness_config)
             if ready:
-                return ReadinessResultModel(ready=True, instance_id=instance_id)
+                return ReadinessResultModel(
+                    ready=True,
+                    instance_id=instance_id,
+                    readiness_config_hash=readiness_config.hash,
+                )
             sleeping_for += tag_match_interval
 
-        return ReadinessResultModel(ready=False, instance_id=instance_id)
+        return ReadinessResultModel(
+            ready=False,
+            instance_id=instance_id,
+            readiness_config_hash=readiness_config.hash,
+        )

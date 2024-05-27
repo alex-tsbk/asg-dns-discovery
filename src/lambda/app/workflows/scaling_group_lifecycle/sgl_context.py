@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 
 from app.components.lifecycle.models.lifecycle_event_model import LifecycleEventModel
 from app.config.models.scaling_group_config import ScalingGroupConfiguration
+from app.domain.entities.instance import Instance
 from app.domain.handlers.handler_context import HandlerContext
 from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
 from app.workflows.scaling_group_lifecycle.models.sgl_dns_change_model import ScalingGroupLifecycleDnsChangeModel
@@ -13,6 +14,9 @@ class ScalingGroupLifecycleContext(HandlerContext):
 
     # Event that triggered the lifecycle handler
     event: LifecycleEventModel
+
+    # Instance Metadata
+    instance_metadata: Instance | None = field(default=None)
 
     # Scaling group configurations that are part of the current lifecycle
     scaling_group_configs: list[ScalingGroupConfiguration] = field(init=False, default_factory=list)

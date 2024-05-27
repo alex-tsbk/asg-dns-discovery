@@ -1,4 +1,5 @@
 from app.components.dns.dns_management_interface import DnsManagementInterface
+from app.components.dns.models.dns_change_request_model import IGNORED_DNS_CHANGE_REQUEST
 from app.config.models.dns_record_config import DnsRecordProvider
 from app.config.models.scaling_group_config import ScalingGroupProceedMode
 from app.domain.handlers.handler_context import HandlerContext
@@ -57,6 +58,12 @@ class ScalingGroupLifecycleApplyDnsChangesStep(ScalingGroupLifecycleStep):
                 + f" and instance {dns_change.instance_lifecycle_context.instance_id}"
                 + f" tracking DNS configuration: {sg_config.dns_config.hash}"
             )
+
+            # If we need to ignore the DNS change request, log and continue
+            if dns_change is IGNORED_DNS_CHANGE_REQUEST:
+                self.logger.info("DNS Change: Ignored DNS change request as no actions are required.")
+                continue
+
             # Build change. This will make DNS change request model immutable onwards.
             dns_change_request_model = dns_change.dns_change_request.build_change()
             self.logger.info(f"DNS Change: {dns_change_request_model.get_change()}")

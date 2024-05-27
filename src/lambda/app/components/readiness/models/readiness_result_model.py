@@ -11,6 +11,8 @@ class ReadinessResultModel(DataclassBase):
 
     # Whether the instance is ready to serve traffic
     ready: bool = field(default=False)
+    # Hash of the readiness configuration used
+    readiness_config_hash: str = field(default="")
     # Instance ID
     instance_id: str = field(default="")
     # Name of the scaling group

@@ -25,6 +25,7 @@ class AwsInstanceReadinessService(InstanceReadinessInterface):
         """
         readiness_model = ReadinessResultModel(
             instance_id=instance_id,
+            readiness_config_hash=readiness_config.hash,
         )
 
         if not readiness_config.enabled:

@@ -54,6 +54,8 @@ class ScalingGroupLifecycleHandleTransitionStep(ScalingGroupLifecycleStep):
             raise BusinessException(f"Unsupported lifecycle event transition: {event.transition}")
 
         # Schedule instance workflow on background thread, so they don't block the main thread
+        # TODO: Need to rework this. We need only to run distinct readiness checks for each instance,
+        # as well as health checks. Also, we don't need to load metadata for same instances multiple times.
         for instance_lifecycle_context in context.instances_contexts:
             self.task_scheduler_service.place(workflow.handle, instance_lifecycle_context)
 

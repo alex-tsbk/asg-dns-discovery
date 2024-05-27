@@ -73,7 +73,7 @@ class CachedInstanceReadinessStep(InstanceLifecycleStep):
     # Internally tracks readiness checks that have passed,
     # to avoid re-checking readiness for the same readiness check
     # for the same instance.
-    checks_completed: dict[str, bool] = {}
+    checks_completed: dict[str, bool] = dict()
 
     def __init__(self, underlying_step: InstanceLifecycleStep) -> None:
         self.logger = get_logger()

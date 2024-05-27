@@ -13,16 +13,18 @@ class ScalingGroupLifecycleWorkflow(WorkflowInterface[ScalingGroupLifecycleConte
     def __init__(
         self,
         distributed_lock_service: DistributedLockInterface,
-        scaling_group_lifecycle_init: Injectable[ScalingGroupLifecycleStep, NamedInjectable("init")],
-        scaling_group_lifecycle_handle_transition: Injectable[ScalingGroupLifecycleStep, NamedInjectable("transition-handler")],
+        scaling_group_lifecycle_load_instance_configs: Injectable[ScalingGroupLifecycleStep, NamedInjectable("configs-loader")],
+        scaling_group_lifecycle_load_metadata: Injectable[ScalingGroupLifecycleStep, NamedInjectable("metadata-loader")],
+        scaling_group_lifecycle_handle_readiness_check: Injectable[ScalingGroupLifecycleStep, NamedInjectable("readiness-checks-handler")],
         scaling_group_lifecycle_plan_dns_changes: Injectable[ScalingGroupLifecycleStep, NamedInjectable("dns-planner")],
         scaling_group_lifecycle_apply_dns_changes: Injectable[ScalingGroupLifecycleStep, NamedInjectable("dns-applier")],
     ):  # fmt: skip
         self.distributed_lock_service = distributed_lock_service
         # Chain the handlers into a pipeline
         self.pipeline = (
-            scaling_group_lifecycle_init
-            >> scaling_group_lifecycle_handle_transition
+            scaling_group_lifecycle_load_instance_configs
+            >> scaling_group_lifecycle_load_metadata
+            >> scaling_group_lifecycle_handle_readiness_check
             >> scaling_group_lifecycle_plan_dns_changes
             >> scaling_group_lifecycle_apply_dns_changes
         ).head()

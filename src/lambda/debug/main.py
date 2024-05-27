@@ -60,12 +60,14 @@ parser.add_argument(
 )
 
 
-def debug_event_request_handler(event: dict[str, Any]):
+def debug_event_request_handler(event: dict[str, Any], event_name: str):
     """Debugs the event request handler.
 
     Args:
         event (dict[str, Any]): The event to debug the event request handler for.
             This is the event that is passed to the event request handler (SNS message in AWS).
+        event_name (str): The event name to debug the event request handler for.
+            Some events may require additional bootstrapping.
     """
     from app import main
 
@@ -95,11 +97,34 @@ def debug_event_request_handler(event: dict[str, Any]):
 
         # Patch event with instance ids from data seeded, as it's impossible to predict instance ids
         event = utils.str_replace(
-            event, constants.INSTANCE_ID_PRIMARY, asg_data.scaling_groups[constants.ASG_PRIMARY][0]
+            event, constants.INSTANCE_ID_PRIMARY, asg_data.scaling_groups[constants.ASG_PRIMARY].instance_ids[0]
         )
         event = utils.str_replace(
-            event, constants.INSTANCE_ID_SECONDARY, asg_data.scaling_groups[constants.ASG_PRIMARY][1]
+            event, constants.INSTANCE_ID_SECONDARY, asg_data.scaling_groups[constants.ASG_PRIMARY].instance_ids[1]
         )
+
+        if event_name == "ec2_instance_terminating":
+            # This record is set up with 2 instances, and will have 1 instance left after termination
+            route53_seeder.set_record(
+                route53_info.hosted_zone_id,
+                # all-operational, route53, multivalue, empty mode: keep, ip v4 private value source, A
+                "aa-r53-m_multi-em_keep-ipv4priv-A.sgdnsdiscovery.com",
+                "A",
+                [
+                    asg_data.scaling_groups[constants.ASG_PRIMARY].instances[0].instance_ipv4_private,
+                    asg_data.scaling_groups[constants.ASG_PRIMARY].instances[1].instance_ipv4_private,
+                ],
+            )
+            # This record is set up with 1 instance, and will have 0 instances left after termination.
+            # This should be creating "garbage" record, once scale-in is complete.
+            route53_seeder.set_record(
+                route53_info.hosted_zone_id,
+                "so-r53-m_multi-em_keep-ipv4priv-A.sgdnsdiscovery.com",
+                "A",
+                [
+                    asg_data.scaling_groups[constants.ASG_PRIMARY].instances[0].instance_ipv4_private,
+                ],
+            )
 
         # Patch bootstrap method to return the DI container, so we can decorate handlers with
         # with Debug-able decorators (health checks service, etc)
@@ -123,7 +148,5 @@ if __name__ == "__main__":
         event = utils.wrap(cloud_provider=args.cloud_provider, wrapper_name=args.wrapper_name, message=event)
 
     # Call the event request handler
-    if args.event_family in [
-        "asg-lifecycle",
-    ]:
-        debug_event_request_handler(event)
+    if args.event_family in ["asg-lifecycle"]:
+        debug_event_request_handler(event, args.event_name)

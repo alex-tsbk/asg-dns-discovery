@@ -50,6 +50,29 @@ class Route53Seeder:
 
         return Route53SeederResponse(hosted_zone_id=hosted_zone_id, domain_name=self.domain_name)
 
+    def set_record(self, hosted_zone_id: str, record_name: str, record_type: str, record_values: list[str]) -> None:
+        if record_type not in ["A", "CNAME"]:
+            self.logger.error(f"Invalid record type: {record_type}")
+            return
+
+        self.route53_client.change_resource_record_sets(
+            HostedZoneId=hosted_zone_id,
+            ChangeBatch={
+                "Comment": f"Setting {record_type} record for {record_name}",
+                "Changes": [
+                    {
+                        "Action": "CREATE",
+                        "ResourceRecordSet": {
+                            "Name": record_name,
+                            "Type": record_type,  # type: ignore
+                            "TTL": 300,
+                            "ResourceRecords": [{"Value": record_value} for record_value in record_values],
+                        },
+                    }
+                ],
+            },
+        )
+
 
 # Usage
 if __name__ == "__main__":
