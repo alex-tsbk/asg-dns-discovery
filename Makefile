@@ -29,8 +29,8 @@ bootstrap:
 	@git config --global --add safe.directory $(PROJECT_ROOT)
 	@echo "Installing dependencies..."
 	@poetry install
-	@echo "Installing pre-commit hooks..."
-	@poetry run pre-commit install
+#	@echo "Installing pre-commit hooks..."
+#	@poetry run pre-commit install
 	@echo "Ininitalizing terraform..."
 	@terraform init
 	@echo "Finished installing dependencies."
