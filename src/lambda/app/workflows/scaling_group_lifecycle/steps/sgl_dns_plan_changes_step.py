@@ -11,12 +11,13 @@ from app.domain.handlers.handler_context import HandlerContext
 from app.utils.di import DIContainer
 from app.utils.exceptions import BusinessException
 from app.utils.logging import get_logger
+from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
 from app.workflows.scaling_group_lifecycle.models.sgl_dns_change_model import ScalingGroupLifecycleDnsChangeModel
 from app.workflows.scaling_group_lifecycle.sgl_context import ScalingGroupLifecycleContext
 from app.workflows.scaling_group_lifecycle.sgl_step import ScalingGroupLifecycleStep
 
 
-class ScalingGroupLifecyclePlanDnsChangesStep(ScalingGroupLifecycleStep):
+class ScalingGroupLifecycleDnsPlanChangesStep(ScalingGroupLifecycleStep):
     """
     Step that plans DNS changes for instances in a scaling group
     """
@@ -48,8 +49,24 @@ class ScalingGroupLifecyclePlanDnsChangesStep(ScalingGroupLifecycleStep):
             provider: self.di_container.resolve(DnsManagementInterface, provider.value) for provider in dns_providers
         }
 
-        # for each scaling group configuration, resolve value from instance metadata
-        for instance_context in context.instance_contexts_manager.get_operational_contexts():
+        # Determine instance contexts we'll be operating on and the DNS change command action
+        instances_contexts: list[InstanceLifecycleContext] = []
+        dns_change_command_action: Optional[DnsChangeCommandAction] = None
+
+        if event.transition == LifecycleTransition.LAUNCHING:
+            dns_change_command_action = DnsChangeCommandAction.APPEND
+            instances_contexts = context.instance_contexts_manager.get_operational_contexts()
+
+        if event.transition == LifecycleTransition.DRAINING:
+            dns_change_command_action = DnsChangeCommandAction.REMOVE
+            instances_contexts = context.instance_contexts_manager.get_all_contexts()
+
+        if not dns_change_command_action:
+            raise BusinessException(f"Unsupported lifecycle event transition: {event.transition}.")
+
+        # Loop through all instances contexts and resolve the metadata for each instance,
+        # followed by generating a DNS change command for each instance
+        for instance_context in instances_contexts:
             # If for any reason we were unable to resolve the instance model, raise an exception
             if not instance_context.instance_model:
                 raise BusinessException(f"Instance model not found for instance: {instance_context.instance_id}")
@@ -64,20 +81,6 @@ class ScalingGroupLifecyclePlanDnsChangesStep(ScalingGroupLifecycleStep):
             self.logger.debug(
                 f"Resolved metadata for {instance_id}: {metadata_result.value} ({metadata_result.value_source})"
             )
-
-            # Create a DNS change command based on the lifecycle event transition and the resolved metadata value
-            dns_change_command_action: Optional[DnsChangeCommandAction] = None
-
-            if event.transition == LifecycleTransition.LAUNCHING:
-                dns_change_command_action = DnsChangeCommandAction.APPEND
-
-            if event.transition == LifecycleTransition.DRAINING:
-                dns_change_command_action = DnsChangeCommandAction.REMOVE
-
-            if not dns_change_command_action:
-                raise BusinessException(
-                    f"Unsupported lifecycle event transition: {event.transition} for instance context {instance_context}."
-                )
 
             dns_change_command = DnsChangeCommand(
                 action=dns_change_command_action,

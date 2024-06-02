@@ -82,8 +82,11 @@ def __register_handlers(di_container: DIContainer) -> None:
         InstanceReadinessStep,
     )
     from app.workflows.scaling_group_lifecycle.sgl_step import ScalingGroupLifecycleStep
-    from app.workflows.scaling_group_lifecycle.steps.sgl_apply_dns_changes_step import (
-        ScalingGroupLifecycleApplyDnsChangesStep,
+    from app.workflows.scaling_group_lifecycle.steps.sgl_dns_apply_changes_step import (
+        ScalingGroupLifecycleDnsApplyChangesStep,
+    )
+    from app.workflows.scaling_group_lifecycle.steps.sgl_dns_plan_changes_step import (
+        ScalingGroupLifecycleDnsPlanChangesStep,
     )
     from app.workflows.scaling_group_lifecycle.steps.sgl_handle_health_checks import (
         ScalingGroupLifecycleHandleHealthChecksStep,
@@ -97,17 +100,14 @@ def __register_handlers(di_container: DIContainer) -> None:
     from app.workflows.scaling_group_lifecycle.steps.sgl_load_instance_metadata import (
         ScalingGroupLifecycleLoadInstanceMetadataStep,
     )
-    from app.workflows.scaling_group_lifecycle.steps.sgl_plan_dns_changes_step import (
-        ScalingGroupLifecyclePlanDnsChangesStep,
-    )
 
     # Scaling group lifecycle
     di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleLoadInstanceConfigsStep, name="configs-loader", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
     di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleHandleReadinessChecksStep, name="readiness-checks-handler", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
     di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleHandleHealthChecksStep, name="health-checks-handler", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
     di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleLoadInstanceMetadataStep, name="metadata-loader", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
-    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecyclePlanDnsChangesStep, name="dns-planner", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
-    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleApplyDnsChangesStep, name="dns-applier", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleDnsPlanChangesStep, name="dns-planner", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
+    di_container.register(ScalingGroupLifecycleStep, ScalingGroupLifecycleDnsApplyChangesStep, name="dns-applier", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
     # Instance lifecycle
     di_container.register(InstanceLifecycleStep, InstanceMetadataLoaderStep, name="metadata-loader", lifetime=DILifetimeScope.TRANSIENT)  # fmt: skip
     di_container.register(InstanceLifecycleStep, InstanceReadinessStep, name="readiness-check")
