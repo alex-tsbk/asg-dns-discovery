@@ -112,7 +112,8 @@ def with_delay(delay_seconds: int):
 
 @dataclass
 class PatchStartupParameters:
-    instance_should_pass_health_check: bool = field(default=True)
+    # When set to true, all instances will pass the health check
+    instances_should_pass_health_check: bool = field(default=True)
 
 
 def patch_startup(patch_params: PatchStartupParameters = PatchStartupParameters()):
@@ -141,7 +142,7 @@ def __patch_health_checks(di_container: DIContainer, params: PatchStartupParamet
         PassingHealthCheckDebugService,
     )
 
-    if params.instance_should_pass_health_check:
+    if params.instances_should_pass_health_check:
         di_container.decorate(HealthCheckInterface, PassingHealthCheckDebugService)
     else:
         di_container.decorate(HealthCheckInterface, FailingHealthCheckDebugService)

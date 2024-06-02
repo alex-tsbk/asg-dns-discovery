@@ -18,5 +18,4 @@ def register_services(di_container: DIContainer):
         di_container.register(InstanceLifecycleInterface, AwsInstanceLifecycleService)
 
     # Register factory so it can be consumed as a dependency
-    lifecycle_event_mode_factory = LifecycleEventModelFactory()
-    di_container.register_instance(lifecycle_event_mode_factory)
+    di_container.register_instance(LifecycleEventModelFactory())

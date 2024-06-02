@@ -55,9 +55,7 @@ class InstanceReadinessStep(InstanceLifecycleStep):
         # If no readiness configuration is provided, return ready
         if not context.readiness_config or not context.readiness_config.enabled:
             self.logger.debug(f"Readiness check disabled for Scaling Group: {scaling_group_name}")
-            return ReadinessResultModel(
-                ready=True, instance_id=context.instance_id, scaling_group_name=scaling_group_name
-            )
+            return ReadinessResultModel(ready=True, instance_id=context.instance_id)
 
         # Perform readiness check
         return self.instance_readiness_service.is_ready(context.instance_id, context.readiness_config)
@@ -91,7 +89,6 @@ class CachedInstanceReadinessStep(InstanceLifecycleStep):
         context.readiness_result = ReadinessResultModel(
             ready=False,
             instance_id=context.instance_id,
-            scaling_group_name=context.scaling_group_config.scaling_group_name,
         )
 
         # If check has already been passed - short circuit

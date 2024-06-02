@@ -29,10 +29,8 @@ class ScalingGroupLifecycleApplyDnsChangesStep(ScalingGroupLifecycleStep):
             context (ScalingGroupLifecycleContext): Context in which the handler is executed
         """
 
-        # Get distinct DNS providers from all scaling group configurations
-        dns_providers = {
-            instance_context.scaling_group_config.dns_config.provider for instance_context in context.instances_contexts
-        }
+        # Get DNS providers from all scaling group configurations
+        dns_providers = context.instance_contexts_manager.get_dns_providers()
 
         # Resolve DNS provider
         dns_management_services: dict[DnsRecordProvider, DnsManagementInterface] = {
@@ -40,12 +38,7 @@ class ScalingGroupLifecycleApplyDnsChangesStep(ScalingGroupLifecycleStep):
         }
 
         # Compute upfront whether all instances contexts are considered operational
-        operational_instances = [
-            instance_context
-            for instance_context in context.instances_contexts
-            if instance_context.instance_model and instance_context.operational
-        ]
-        all_instances_operational = len(operational_instances) == len(context.instances_contexts)
+        all_instances_operational = context.instance_contexts_manager.check_all_instances_operational()
 
         # Iterate over all DNS change requests and apply them, if possible
         for dns_change in context.dns_change_requests:

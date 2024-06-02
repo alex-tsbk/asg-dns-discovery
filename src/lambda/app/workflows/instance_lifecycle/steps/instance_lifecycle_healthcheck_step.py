@@ -43,7 +43,6 @@ class InstanceHealthCheckStep(InstanceLifecycleStep):
             context.health_check_result = HealthCheckResultModel(
                 healthy=True,
                 instance_id=context.instance_id,
-                scaling_group_name=context.scaling_group_config.scaling_group_name,
             )
             return super().handle(context)
 
@@ -83,9 +82,7 @@ class InstanceHealthCheckStep(InstanceLifecycleStep):
                 f"Health check disabled for Scaling Group: {scaling_group_name} tracking DNS configuration '{dns_config_hash}'"
             )
             # Build result model
-            return HealthCheckResultModel(
-                healthy=True, instance_id=context.instance_id, scaling_group_name=scaling_group_name
-            )
+            return HealthCheckResultModel(healthy=True, instance_id=context.instance_id)
 
         # Ensure instance model is loaded prior to performing health check
         if context.instance_model is None:

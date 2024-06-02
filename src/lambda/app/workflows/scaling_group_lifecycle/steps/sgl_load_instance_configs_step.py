@@ -68,6 +68,6 @@ class ScalingGroupLifecycleLoadInstanceConfigsStep(ScalingGroupLifecycleStep):
                 health_check_config=scaling_group_config.health_check_config,
             )
 
-            context.register_instance_context(instance_lifecycle_context)
+            context.instance_contexts_manager.register_instance_context(instance_lifecycle_context)
 
         return super().handle(context)

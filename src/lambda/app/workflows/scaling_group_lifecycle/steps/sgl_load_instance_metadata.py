@@ -42,4 +42,9 @@ class ScalingGroupLifecycleLoadInstanceMetadataStep(ScalingGroupLifecycleStep):
         # Update context
         context.instance_metadata = instance_model
 
+        # Update each instance context
+        for instance_context in context.instance_contexts_manager.get_all_contexts():
+            instance_context.instance_model = instance_model
+
+        # Continue handling
         return super().handle(context)

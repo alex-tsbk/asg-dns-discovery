@@ -4,7 +4,7 @@ from app.components.lifecycle.models.lifecycle_event_model import LifecycleEvent
 from app.config.models.scaling_group_config import ScalingGroupConfiguration
 from app.domain.entities.instance import Instance
 from app.domain.handlers.handler_context import HandlerContext
-from app.workflows.instance_lifecycle.instance_lifecycle_context import InstanceLifecycleContext
+from app.workflows.instance_lifecycle.instance_lifecycle_context_manager import InstanceLifecycleContextManager
 from app.workflows.scaling_group_lifecycle.models.sgl_dns_change_model import ScalingGroupLifecycleDnsChangeModel
 
 
@@ -30,15 +30,9 @@ class ScalingGroupLifecycleContext(HandlerContext):
     # but not for another. This is why it is necessary to track unique combinations of readiness
     # and health checks for each DNS configuration separately. This also allows to prevent
     # duplicate processing of the same instance when the readiness and health check configurations are the same.
-    instances_contexts: list[InstanceLifecycleContext] = field(init=False, default_factory=list)
-
-    def register_instance_context(self, instance_context: InstanceLifecycleContext):
-        """Register an instance context that is part of the current scaling group lifecycle.
-
-        Args:
-            instance_context (InstanceLifecycleContext): Instance lifecycle context to be registered
-        """
-        self.instances_contexts.append(instance_context)
+    instance_contexts_manager: InstanceLifecycleContextManager = field(
+        init=False, default_factory=InstanceLifecycleContextManager
+    )
 
     def __post_init__(self):
         return super().__post_init__()

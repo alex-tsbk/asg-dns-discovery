@@ -58,7 +58,7 @@ class ConcurrentTaskScheduler(TaskSchedulerInterface):
             # Block main thread until a worker is available,
             # then submit the task for execution
             self.logger.warning(
-                f"Thread pool is full: {self.workers_in_use}, waiting for a worker to become available.."
+                f"Thread pool is full: {self.workers_in_use}/{self.max_workers} in use, waiting for a worker to become available.."
             )
             sleep(0.01)  # 10 ms
 

@@ -14,8 +14,10 @@ class ScalingGroupLifecycleWorkflow(WorkflowInterface[ScalingGroupLifecycleConte
         self,
         distributed_lock_service: DistributedLockInterface,
         scaling_group_lifecycle_load_instance_configs: Injectable[ScalingGroupLifecycleStep, NamedInjectable("configs-loader")],
-        scaling_group_lifecycle_load_metadata: Injectable[ScalingGroupLifecycleStep, NamedInjectable("metadata-loader")],
         scaling_group_lifecycle_handle_readiness_check: Injectable[ScalingGroupLifecycleStep, NamedInjectable("readiness-checks-handler")],
+        scaling_group_lifecycle_handle_health_check: Injectable[ScalingGroupLifecycleStep, NamedInjectable("health-checks-handler")],
+        scaling_group_lifecycle_load_metadata: Injectable[ScalingGroupLifecycleStep, NamedInjectable("metadata-loader")],
+        # Proceed/decide with ASG hooks
         scaling_group_lifecycle_plan_dns_changes: Injectable[ScalingGroupLifecycleStep, NamedInjectable("dns-planner")],
         scaling_group_lifecycle_apply_dns_changes: Injectable[ScalingGroupLifecycleStep, NamedInjectable("dns-applier")],
     ):  # fmt: skip
@@ -23,8 +25,9 @@ class ScalingGroupLifecycleWorkflow(WorkflowInterface[ScalingGroupLifecycleConte
         # Chain the handlers into a pipeline
         self.pipeline = (
             scaling_group_lifecycle_load_instance_configs
-            >> scaling_group_lifecycle_load_metadata
             >> scaling_group_lifecycle_handle_readiness_check
+            >> scaling_group_lifecycle_handle_health_check
+            >> scaling_group_lifecycle_load_metadata
             >> scaling_group_lifecycle_plan_dns_changes
             >> scaling_group_lifecycle_apply_dns_changes
         ).head()

@@ -8,7 +8,7 @@
                 "Type": "Notification",
                 "MessageId": "4a9f3fdc-a3e3-58db-b23b-61a4edd05553",
                 "TopicArn": "arn:aws:sns:us-east-1:123456789012:dev-sg-dns-discovery",
-                "Subject": "Auto Scaling:  Lifecycle action 'TERMINATING' for instance i-05629ab7d9287e205 in progress.",
+                "Subject": "Auto Scaling:  Lifecycle action for instance i-05629ab7d9287e205 in progress.",
                 "Message": "{%MESSAGE%}",
                 "Timestamp": "2024-03-23T03:26:43.936Z",
                 "SignatureVersion": "1",

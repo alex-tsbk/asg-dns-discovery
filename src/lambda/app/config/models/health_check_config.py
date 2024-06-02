@@ -41,7 +41,7 @@ class HealthCheckConfig(DataclassBase):
     @property
     def hash(self):
         """Unique identifier for the health check result"""
-        return f"{self.enabled}/{self.endpoint_source}/{self.path}/{self.port}/{self.protocol}/{self.timeout_seconds}"
+        return f"e:{self.enabled}/es:{self.endpoint_source}/p:{self.port}/s:{self.timeout_seconds}/{self.protocol.value}/pth:{self.path}"
 
     def __post_init__(self):
         if self.port < 1 or self.port > 65535:
@@ -51,10 +51,10 @@ class HealthCheckConfig(DataclassBase):
             raise ValueError(f"Invalid health check value source: {self.endpoint_source}")
 
         if self.timeout_seconds < 1 or self.timeout_seconds > 60:
-            raise ValueError(f"Invalid health check timeout: {self.timeout_seconds}")
+            raise ValueError(f"Invalid health check timeout: {self.timeout_seconds}. Must be between 1 and 60 seconds.")
 
         if self.enabled and self.protocol in [HealthCheckProtocol.HTTP, HealthCheckProtocol.HTTPS] and not self.path:
-            raise ValueError("Health check path is required when HTTP(S) health check is enabled")
+            self.path = "/"  # Implicitly set path to root if not provided, but config is defined and enabled
 
     def __str__(self) -> str:
         return self.hash

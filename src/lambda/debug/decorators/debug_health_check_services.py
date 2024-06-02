@@ -1,3 +1,5 @@
+from time import sleep
+
 from app.components.healthcheck.health_check_interface import HealthCheckInterface
 from app.components.healthcheck.models.health_check_result_model import HealthCheckResultModel
 from app.config.models.health_check_config import HealthCheckConfig
@@ -12,7 +14,11 @@ class PassingHealthCheckDebugService(HealthCheckInterface):
         self.underlying_service = underlying_service
 
     def check(self, destination: str, health_check_config: HealthCheckConfig) -> HealthCheckResultModel:
-        return HealthCheckResultModel(True, message="Passing health check service.")
+        self.logger.info("Sleeping for 1 second before returning a passing health check result.")
+        sleep(1)
+        return HealthCheckResultModel(
+            True, message="Passing health check service.", health_check_config_hash=health_check_config.hash
+        )
 
 
 class FailingHealthCheckDebugService(HealthCheckInterface):
@@ -23,4 +29,8 @@ class FailingHealthCheckDebugService(HealthCheckInterface):
         self.underlying_service = underlying_service
 
     def check(self, destination: str, health_check_config: HealthCheckConfig) -> HealthCheckResultModel:
-        return HealthCheckResultModel(False, message="Failing health check service.")
+        self.logger.info("Sleeping for 1 second before returning a failing health check result.")
+        sleep(1)
+        return HealthCheckResultModel(
+            False, message="Failing health check service.", health_check_config_hash=health_check_config.hash
+        )

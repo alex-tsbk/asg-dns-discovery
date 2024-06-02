@@ -32,6 +32,15 @@ class InstanceLifecycleContext(HandlerContext):
     health_check_result: Optional[HealthCheckResultModel] = field(default=None)
 
     @property
+    def readiness_check_required(self) -> bool:
+        """Returns True if the instance requires readiness check.
+
+        Returns:
+            bool: True if the instance requires readiness check
+        """
+        return self.readiness_config is not None and self.readiness_config.enabled
+
+    @property
     def readiness_check_passed(self) -> bool:
         """Returns True if the instance has passed the readiness check.
         Readiness check is considered passed if readiness check configuration is not defined or
@@ -41,6 +50,15 @@ class InstanceLifecycleContext(HandlerContext):
             bool: True if the instance is considered ready
         """
         return self.readiness_config is None or self.readiness_result.ready
+
+    @property
+    def health_check_required(self) -> bool:
+        """Returns True if the instance requires health check.
+
+        Returns:
+            bool: True if the instance requires health check
+        """
+        return self.health_check_config is not None and self.health_check_config.enabled
 
     @property
     def health_check_passed(self) -> bool:
@@ -74,11 +92,11 @@ class InstanceLifecycleContext(HandlerContext):
             str: Deduplication key
         """
         # Generate composite key to track unique readiness and health check configurations
-        deduplication_key = f"{self.instance_id}"
+        deduplication_key = f"i:{self.instance_id}"
         if self.readiness_config:
-            deduplication_key += f"-{self.readiness_config}"
+            deduplication_key += f"-rcfg:{self.readiness_config}"
         if self.health_check_config:
-            deduplication_key += f"-{self.health_check_config}"
+            deduplication_key += f"-hcfg:{self.health_check_config}"
         return deduplication_key
 
     def __post_init__(self):

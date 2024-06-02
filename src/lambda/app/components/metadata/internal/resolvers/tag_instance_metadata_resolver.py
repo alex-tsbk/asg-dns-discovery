@@ -26,7 +26,7 @@ class TagInstanceMetadataResolver(InstanceMetadataResolverInterface):
                 f"Resolver {self.__class__.__name__} does not support value source type {value_source.type}"
             )
         # Resolve tag value based on the attribute and sub-type
-        value = instance.get_tag_value(value_source.attribute, not strings.alike(value_source.sub_type, "ci"))
+        value = instance.get_tag_value(value_source.attribute, strings.alike(value_source.sub_type, "cs"))
         result = MetadataResultModel(instance.instance_id, value, str(value_source))
         self.logger.debug(f"For value source {value_source}, resolved value: {result.value}")
         return result

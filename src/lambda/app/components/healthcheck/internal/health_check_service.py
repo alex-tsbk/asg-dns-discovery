@@ -1,5 +1,6 @@
 import socket
 import urllib.request
+from typing import Optional
 
 from app.components.healthcheck.health_check_interface import HealthCheckInterface
 from app.components.healthcheck.models.health_check_result_model import HealthCheckResultModel
@@ -30,15 +31,21 @@ class HealthCheckService(HealthCheckInterface):
         port: int = health_check_config.port
         path: str = health_check_config.path
         timeout_seconds: int = health_check_config.timeout_seconds
+        result: Optional[HealthCheckResultModel] = None
 
         match protocol:
             case HealthCheckProtocol.TCP:
-                return self._tcp_check(destination, port, timeout_seconds)
+                result = self._tcp_check(destination, port, timeout_seconds)
             case HealthCheckProtocol.HTTP | HealthCheckProtocol.HTTPS:
                 scheme = health_check_config.protocol.value.lower()
-                return self._http_check(destination, scheme, port, path, timeout_seconds)
+                result = self._http_check(destination, scheme, port, path, timeout_seconds)
             case _:  # type: ignore
                 raise ValueError("Unsupported protocol. Only 'TCP' and 'HTTP(S)' are supported.")
+
+        # Update hash of the health check result
+        result.health_check_config_hash = health_check_config.hash
+
+        return result
 
     def _tcp_check(
         self,

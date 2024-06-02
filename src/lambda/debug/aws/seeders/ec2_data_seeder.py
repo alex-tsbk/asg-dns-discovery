@@ -136,11 +136,11 @@ class Ec2DataSeeder:
             ],
         )
         instance_id: str = create_result["Instances"][0]["InstanceId"]
-        instace_ipv4 = create_result["Instances"][0]["PrivateIpAddress"]
+        instance_ipv4 = create_result["Instances"][0]["PrivateIpAddress"]
         shared_state.scaling_groups[asg_name].instances.append(
             Ec2InfoModel(
                 instance_id=instance_id,
-                instance_ipv4_private=instace_ipv4,
+                instance_ipv4_private=instance_ipv4,
             )
         )
 

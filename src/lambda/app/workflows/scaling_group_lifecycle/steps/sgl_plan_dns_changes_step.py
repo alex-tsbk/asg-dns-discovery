@@ -41,12 +41,7 @@ class ScalingGroupLifecyclePlanDnsChangesStep(ScalingGroupLifecycleStep):
         event = context.event
 
         # Get distinct DNS providers from all scaling group configurations
-        dns_providers = set(
-            [
-                instance_context.scaling_group_config.dns_config.provider
-                for instance_context in context.instances_contexts
-            ]
-        )
+        dns_providers = context.instance_contexts_manager.get_dns_providers()
 
         # Resolve DNS provider
         dns_management_services: dict[DnsRecordProvider, DnsManagementInterface] = {
@@ -54,7 +49,7 @@ class ScalingGroupLifecyclePlanDnsChangesStep(ScalingGroupLifecycleStep):
         }
 
         # for each scaling group configuration, resolve value from instance metadata
-        for instance_context in context.instances_contexts:
+        for instance_context in context.instance_contexts_manager.get_operational_contexts():
             # If for any reason we were unable to resolve the instance model, raise an exception
             if not instance_context.instance_model:
                 raise BusinessException(f"Instance model not found for instance: {instance_context.instance_id}")

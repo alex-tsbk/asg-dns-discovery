@@ -116,8 +116,8 @@ variable "records" {
       # * 'dns:public|private' - will use public/private DNS name of the instance
       # * 'tag:[<case_comparison_type>]:<tag_name>' - where <tag_name> is the name of the tag to
       #     use as the source for the DNS record value. '<comparison_type>' - Specifies whether to
-      #     perform case sensitive or insestitive tag key match. Use 'ci' for case insensitive match.
-      #     Use 'cs' or omit parameter for case sensitive match. Default is case sensitive ('cs').
+      #     perform case sensitive or insestitive tag key match. Use 'cs' for case sensitive match.
+      #     Use 'ci' or omit parameter for case insensitive match. Default is case insensitive ('ci').
       # IMPORTANT:
       # * If you're using private IPs, resolver function must be on the same network as Instance.
       #   For AWS this means lambda being deployed to the same VPC as the ASG(s) it's runnign check against.
@@ -179,12 +179,16 @@ variable "records" {
       enabled = optional(bool, false)
       # Value to use as the source for the health check. If not provided, then the value from `dns_config.value_source` will be used.
       # Supported values:
-      # * 'ip:public' - will use public IP of the instance
-      # * 'ip:private' - will use private IP of the instance
-      # * 'tag:<tag_name>' - where <tag_name> is the name of the tag to use as the source for the DNS record value.
+      # * 'ip:v4:public|private' - will use public/private IP v4 of the instance.
+      # * 'ip:v6:public|private' - will use public/private IP v6 of the instance.
+      # * 'dns:public|private' - will use public/private DNS name of the instance
+      # * 'tag:[<case_comparison_type>]:<tag_name>' - where <tag_name> is the name of the tag to
+      #     use as the source for the DNS record value. '<comparison_type>' - Specifies whether to
+      #     perform case sensitive or insestitive tag key match. Use 'cs' for case sensitive match.
+      #     Use 'ci' or omit parameter for case insensitive match. Default is case insensitive ('ci').
       # IMPORTANT:
       # * Ensure that the health check source is accessible from the resolver function (for AWS - from Lambda).
-      endpoint_source = optional(string, "ip:private")
+      endpoint_source = optional(string, "ip:v4:private")
       port            = number
       protocol        = string
       timeout_seconds = number

@@ -38,7 +38,9 @@ class MetadataValueSourceModel(DataclassBase):
         parts = source.split(":")
         parts_len = len(parts)
         if parts_len < 1 or parts_len > 3:
-            raise ValueError(f"Invalid source format: {source}")
+            raise ValueError(
+                f"Invalid source format: {source}. Must be in the format 'source_type[:sub_type]:attribute'. Example: ip:v4:public"
+            )
         if parts_len == 1:
             return cls(type=parts[0], sub_type="", attribute="")
         if parts_len == 2:
