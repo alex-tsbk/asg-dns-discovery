@@ -166,6 +166,9 @@ variable "records" {
       timeout_seconds = optional(number, 300)
       # Interval in seconds to check for the tag. Default is 5 seconds.
       interval_seconds = optional(number, 5)
+      # When set to true, will sent 'ABANDON' result to the ASG lifecycle hook if readiness check fails.
+      # Default is false.
+      abandon_on_failure = optional(bool, false)
     }), null)
 
     # ###
@@ -194,13 +197,16 @@ variable "records" {
       timeout_seconds = number
       # Path is required for HTTP/HTTPS health checks
       path = optional(string, "")
+      # When set to true, will sent 'ABANDON' result to the ASG lifecycle hook if health check fails.
+      # Default is false.
+      abandon_on_failure = optional(bool, false)
     }), null)
   }))
 
   default = []
 }
 
-# IMportant: it is responsibility of your application to set the tag on the instance
+# Important: it is responsibility of your application to set the tag on the instance
 # to the value specified here once instance is fully bootstrapped with your application/deploy scripts.
 # You can override this behavior on per-ASG basis by specifying `readiness` object in the `records` list.
 variable "instance_readiness_default" {
@@ -208,7 +214,7 @@ variable "instance_readiness_default" {
 
   type = object({
     # If true, the readiness check will be enabled. Disabled by default.
-    enabled = optional(bool, true)
+    enabled = optional(bool, false)
     # Tag key to look for
     tag_key = string
     # Tag value to look for
@@ -236,9 +242,9 @@ variable "reconciliation" {
 
     # List of valid states for the scaling group to consider for reconciliation. Cloud provider specific.
     # * AWS: https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-lifecycle.html
-    scaling_group_valid_states = optional(list(string), ["Pending", "Pending:Wait", "Pending:Proceed", "InService"])
+    scaling_group_valid_states = optional(list(string), ["InService"])
 
-    # Maximum number of concurrent reconciliations. Default is 2.
+    # Maximum number of concurrent reconciliations. Default is number of distinct Scaling Groups defined through terraform.
     # AWS:
     #   In AWS this is maximum concurrency for Amazon SQS event sources. Value must be between 2 and 1000.
     #   Setting this to more than number of ASGs being managed will not have any effect.

@@ -1,8 +1,6 @@
 from app.utils import environment
 from app.utils.singleton import Singleton
 
-# from functools import cached_property
-
 
 class _RuntimeContext(metaclass=Singleton):
     """Provides runtime context information - execution environment, cloud provider, etc."""

@@ -13,23 +13,23 @@ class ScalingGroupLifecycleWorkflow(WorkflowInterface[ScalingGroupLifecycleConte
     def __init__(
         self,
         distributed_lock_service: DistributedLockInterface,
-        scaling_group_lifecycle_load_instance_configs: Injectable[ScalingGroupLifecycleStep, NamedInjectable("configs-loader")],
-        scaling_group_lifecycle_handle_readiness_check: Injectable[ScalingGroupLifecycleStep, NamedInjectable("readiness-checks-handler")],
-        scaling_group_lifecycle_handle_health_check: Injectable[ScalingGroupLifecycleStep, NamedInjectable("health-checks-handler")],
-        scaling_group_lifecycle_load_metadata: Injectable[ScalingGroupLifecycleStep, NamedInjectable("metadata-loader")],
-        # Proceed/decide with ASG hooks
-        scaling_group_lifecycle_plan_dns_changes: Injectable[ScalingGroupLifecycleStep, NamedInjectable("dns-planner")],
-        scaling_group_lifecycle_apply_dns_changes: Injectable[ScalingGroupLifecycleStep, NamedInjectable("dns-applier")],
+        sgl_load_instance_configs: Injectable[ScalingGroupLifecycleStep, NamedInjectable("configs-loader")],
+        sgl_handle_readiness_check: Injectable[ScalingGroupLifecycleStep, NamedInjectable("readiness-checks-handler")],
+        sgl_handle_health_check: Injectable[ScalingGroupLifecycleStep, NamedInjectable("health-checks-handler")],
+        sgl_load_metadata: Injectable[ScalingGroupLifecycleStep, NamedInjectable("metadata-loader")],
+        sgl_hook_notifier: Injectable[ScalingGroupLifecycleStep, NamedInjectable("lch-handler")],
+        sgl_plan_dns_changes: Injectable[ScalingGroupLifecycleStep, NamedInjectable("dns-planner")],
+        sgl_apply_dns_changes: Injectable[ScalingGroupLifecycleStep, NamedInjectable("dns-applier")],
     ):  # fmt: skip
         self.distributed_lock_service = distributed_lock_service
         # Chain the handlers into a pipeline
         self.pipeline = (
-            scaling_group_lifecycle_load_instance_configs
-            >> scaling_group_lifecycle_handle_readiness_check
-            >> scaling_group_lifecycle_handle_health_check
-            >> scaling_group_lifecycle_load_metadata
-            >> scaling_group_lifecycle_plan_dns_changes
-            >> scaling_group_lifecycle_apply_dns_changes
+            sgl_load_instance_configs
+            >> sgl_handle_readiness_check
+            >> sgl_handle_health_check
+            >> sgl_load_metadata
+            >> sgl_plan_dns_changes
+            >> sgl_apply_dns_changes
         ).head()
 
     def handle(self, context: ScalingGroupLifecycleContext) -> HandlerContext:

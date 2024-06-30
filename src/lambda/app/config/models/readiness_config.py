@@ -17,6 +17,8 @@ class ReadinessConfig(DataclassBase):
     tag_key: str = field(default="app:readiness:status")
     # The tag value to check for readiness
     tag_value: str = field(default="ready")
+    # When set to true, the instance is abandoned if the readiness check fails
+    abandon_on_failure: bool = field(default=False)
 
     @property
     def hash(self):
@@ -38,7 +40,8 @@ class ReadinessConfig(DataclassBase):
             "interval_seconds": "<interval>",
             "timeout_seconds": "<timeout>",
             "tag_key": "<tag_key>",
-            "tag_value": "<tag_value>"
+            "tag_value": "<tag_value>",
+            "abandon_on_failure": "<abandon_on_failure>"
         }
         """
         return cls(
@@ -47,4 +50,5 @@ class ReadinessConfig(DataclassBase):
             timeout_seconds=int(data.get("timeout_seconds", 60)),
             tag_key=str(data.get("tag_key", "app:readiness:status")),
             tag_value=str(data.get("tag_value", "ready")),
+            abandon_on_failure=strings.alike(data.get("abandon_on_failure", ""), "true"),
         )

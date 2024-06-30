@@ -37,6 +37,8 @@ class HealthCheckConfig(DataclassBase):
     protocol: HealthCheckProtocol = field(default=HealthCheckProtocol.HTTP)
     # The interval in seconds to check the health of the instance
     timeout_seconds: int = field(default=5)
+    # When enabled, the instance is abandoned if the health check fails
+    abandon_on_failure: bool = field(default=False)
 
     @property
     def hash(self):
@@ -71,7 +73,8 @@ class HealthCheckConfig(DataclassBase):
             "path": "/health",
             "port": 80,
             "protocol": "HTTP",
-            "timeout_seconds": 5
+            "timeout_seconds": 5,
+            "abandon_on_failure": "false"
         }
         """
         return cls(
@@ -81,4 +84,5 @@ class HealthCheckConfig(DataclassBase):
             port=int(data.get("port", "")),
             protocol=enums.to_enum(data.get("protocol"), default=HealthCheckProtocol.HTTP),
             timeout_seconds=data.get("timeout_seconds", 5),
+            abandon_on_failure=strings.alike(data.get("abandon_on_failure", ""), "true"),
         )
